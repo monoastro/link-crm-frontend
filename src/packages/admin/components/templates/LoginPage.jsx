@@ -36,7 +36,7 @@ export function LoginPage({ loginUrl='/auth/login', redirectTo = "/admin/dashboa
       <div className="w-1/2 rounded-lg border border-gray-200 bg-white p-8 shadow-sm">
         <h1 className="mb-6 text-xl font-semibold">Log in</h1>
         <Form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input name="email" type="email" placeholder="Email" required />
+          <Input name="username" type="username" placeholder="Username" required />
           <Input name="password" type="password" placeholder="Password" required />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <button
