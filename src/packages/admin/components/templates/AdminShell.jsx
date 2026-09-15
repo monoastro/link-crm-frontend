@@ -55,9 +55,9 @@ export function AdminShell({ children }) {
       <div className="flex flex-col flex-1 bg-gray-50 overflow-y-auto items-center">
           <div className='flex justify-between w-full p-2 border-b border-gray-200'>
             <Breadcrumb />
-            <ProfileDropdown />
+            <ProfileDropdown user={user}/>
           </div>
-        <div className='flex flex-col flex-1 overflow-y-auto max-w-[1100px] w-full'>
+        <div className='flex flex-col py-2 flex-1 overflow-y-auto max-w-[1100px] w-full'>
           <div className="flex-1 ">{children}</div>
         </div>
       </div>

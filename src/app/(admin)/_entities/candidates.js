@@ -1,0 +1,171 @@
+import { defineEntity } from "@/packages/admin/index.jsx";
+import { Contact } from "lucide-react";
+
+export const candidates = defineEntity({
+  slug: "candidates",
+  label: "Candidates",
+  icon: Contact,
+  titleField: "name",
+  roles: ["admin"],
+  fields: [
+    { name: "name", type: "text", label: "Name" },
+    { name: "email", type: "email", label: "Email", invisible: true },
+    { name: "phone", type: "tel", label: "Phone", invisible: true },
+    { name: "passport", type: "text", label: "Passport" },
+    { name: "address", type: "text", label: "Address", invisible: true },
+    { name: "dob", type: "date", label: "Date of Birth", invisible: true },
+    {
+      name: "gender",
+      type: "select",
+      label: "Gender",
+      options: ["male", "female", "other"],
+      invisible: true,
+    },
+    { name: "placeOfBirth", type: "text", label: "Place of Birth", invisible: true },
+
+    {
+      name: "appliedCategory",
+      type: "text",
+      column: "right",
+      label: "Applied Category",
+      invisible: true,
+    },
+    {
+      name: "appliedCountry",
+      type: "text",
+      column: "right",
+      label: "Applied Country",
+    },
+    {
+      name: "companyId",
+      type: "relation",
+      column: "right",
+      label: "Company",
+      relation: { entity: "companies", labelField: "name" },
+      invisible: true,
+    },
+    { name: "month", type: "text", column: "right", label: "Month", invisible: true },
+    {
+      name: "reference",
+      type: "text",
+      column: "right",
+      label: "Reference",
+      invisible: true,
+    },
+
+    {
+      name: "passportExpiry",
+      type: "date",
+      column: "right",
+      label: "Passport Expiry",
+      invisible: true,
+    },
+    {
+      name: "docsForwardOrInterviewDate",
+      type: "date",
+      column: "right",
+      label: "Docs Forward / Interview Date",
+      invisible: true,
+    },
+    {
+      name: "visaReceivedDate",
+      type: "date",
+      column: "right",
+      label: "Visa Received Date",
+      invisible: true,
+    },
+    {
+      name: "visaExpiryDate",
+      type: "date",
+      column: "right",
+      label: "Visa Expiry Date",
+      invisible: true,
+    },
+    {
+      name: "deploymentOn",
+      type: "date",
+      column: "right",
+      label: "Deployment On",
+      invisible: true,
+    },
+
+    {
+      name: "offerStatus",
+      type: "text",
+      column: "right",
+      label: "Offer Status",
+    },
+    {
+      name: "medicalStatus",
+      type: "text",
+      column: "right",
+      label: "Medical Status",
+      invisible: true,
+    },
+    { name: "molStatus", type: "text", column: "right", label: "MOL Status", invisible: true },
+    {
+      name: "tashreehStatus",
+      type: "text",
+      column: "right",
+      label: "Tashreeh Status",
+      invisible: true,
+    },
+    {
+      name: "visaNumber",
+      type: "text",
+      column: "right",
+      label: "Visa Number",
+      invisible: true,
+    },
+    {
+      name: "visaStatus",
+      type: "text",
+      column: "right",
+      label: "Visa Status",
+      invisible: true,
+    },
+    { name: "qvcStatus", type: "text", column: "right", label: "QVC Status", invisible: true },
+    {
+      name: "mofaStatus",
+      type: "text",
+      column: "right",
+      label: "MOFA Status",
+      invisible: true,
+    },
+    { name: "pccStatus", type: "text", column: "right", label: "PCC Status", invisible: true },
+    {
+      name: "visaProfession",
+      type: "text",
+      column: "right",
+      label: "Visa Profession",
+      invisible: true,
+    },
+    { name: "dofeStatus", type: "text", column: "right", label: "DOFE Status", invisible: true },
+    { name: "ppStatus", type: "text", column: "right", label: "PP Status", invisible: true },
+    {
+      name: "flightStatus",
+      type: "text",
+      column: "right",
+      label: "Flight Status",
+      invisible: true,
+    },
+
+    { name: "remarks", type: "textarea", label: "Remarks", invisible: true },
+  ],
+  filters: [
+    {
+      field: "gender",
+      label: "Gender",
+      options: [
+        { label: "Male", value: "male" },
+        { label: "Female", value: "female" },
+        { label: "Other", value: "other" },
+      ],
+    },
+    {
+      field: "appliedCountry",
+      label: "Applied Country",
+      options: [], // populate from distinct DB values, or wire up dynamically
+    },
+  ],
+});

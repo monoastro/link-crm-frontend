@@ -12,6 +12,27 @@
   --font-mono: var(--font-geist-mono);
 }
 
+* {
+  box-sizing: border-box;
+}
+
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+}
+
+th {
+  padding: 0.75em 1.5em;
+}
+
+td {
+  padding: 0.5em 1.5em;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;

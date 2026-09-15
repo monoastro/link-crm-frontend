@@ -26,7 +26,7 @@ export function ProfileDropdown({
     { label: "Settings", icon: Settings, onClick: () => {} },
   ];
 
-  const initial = user.name?.charAt(0).toUpperCase();
+  const initial = user.username?.charAt(0).toUpperCase();
 
   return (
     <div className="relative inline-block" ref={ref}>

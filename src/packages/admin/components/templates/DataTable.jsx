@@ -7,6 +7,7 @@ import { Badge } from "../atoms/Badge.jsx";
 import { EditButton, ViewButton } from "../atoms/Buttons.jsx";
 import { DeleteAction } from "../organisms/DeleteAction.jsx";
 import { useEntity } from "./AdminChildrenLayout.jsx";
+import { useApi } from "../../contexts/ApiContext.jsx";
 import { resolveUrl } from "../../utils/utils.js";
 
 function normalizePayloadResponse(data) {
@@ -40,9 +41,8 @@ export default function DataTable({
   selectable = true, // set false to hide the checkbox column entirely
 }) {
   const { name, mutate } = useEntity();
+  const { del } = useApi();
   const { items, total, page, totalPages, hasNextPage, hasPrevPage } = normalizePayloadResponse(data);
-  console.log('data',normalizePayloadResponse(data))
-  console.log('fields', fields)
 
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [isDeleting, setIsDeleting] = useState(false);
@@ -91,7 +91,7 @@ export default function DataTable({
     try {
       const results = await Promise.allSettled(
         Array.from(selectedIds).map((id) =>
-          fetch(`/${name}/${id}`, { method: "DELETE" })
+          del(`/${name}/${id}`, { method: "DELETE" })
         )
       );
       const failed = results.filter((r) => r.status === "rejected" || r.value?.ok === false);

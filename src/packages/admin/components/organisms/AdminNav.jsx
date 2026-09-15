@@ -19,7 +19,7 @@ export function AdminNav({ items, panel }) {
         const isactive = pathname.startsWith("/admin/" + key);
         return (
           <li key={key} title={key} className="w-full outline-none">
-            <Link href={`/admin/${key}`} className="block w-full">
+            <Link href={`/${key}`} className="block w-full">
               <div
                 className={`flex items-center gap-3 rounded-lg border p-2 text-sm font-medium transition-colors ${
                   isactive

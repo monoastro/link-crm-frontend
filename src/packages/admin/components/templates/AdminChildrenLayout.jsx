@@ -97,7 +97,7 @@ export function AdminChildrenLayout({
             )}
           </div>
           <Link
-            href={`/admin/${name}/new`}
+            href={`/${name}/new`}
             className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
             <Plus size={16} />
