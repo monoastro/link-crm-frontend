@@ -6,7 +6,7 @@ export const candidates = defineEntity({
   label: "Candidates",
   icon: Contact,
   titleField: "name",
-  roles: ["admin"],
+  roles: ["admin", "frontdesk", "flight", "visa", "medical"],
   fields: [
     { name: "name", type: "text", label: "Name" },
     { name: "email", type: "email", label: "Email", invisible: true },

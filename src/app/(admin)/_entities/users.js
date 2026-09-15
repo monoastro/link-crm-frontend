@@ -8,14 +8,14 @@ export const users = defineEntity({
   titleField: "name",
   roles: ["admin"],
   fields: [
-    { name: "username", type: "text", label: "Userame", required: true },
+    { name: "username", type: "text", label: "Username", required: true },
     { name: "password", type: "password", label: "Password", invisible: true },
     {
       name: "role",
       type: "select",
       column: "right",
       label: "Role",
-      options: ["admin", "editor"],
+      options: ["admin", "frontdesk", "flight", "visa", "medical"],
     },
   ],
   filters: [
@@ -24,9 +24,11 @@ export const users = defineEntity({
       label: "Roles",
       options: [
         { label: "Admin", value: "admin" },
-        { label: "Editor", value: "editor" },
+        { label: "Front Desk", value: "frontdesk" },
+        { label: "Flight", value: "flight" },
+        { label: "Visa", value: "visa" },
+        { label: "Medical", value: "medical" },
       ],
     },
   ],
 });
-

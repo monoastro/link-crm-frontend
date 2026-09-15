@@ -177,7 +177,7 @@ export function AdminChildrenLayout({
         <DataTable
           data={entity.data}
           fields={tablefields}
-          editHref={`/admin/${name}/`}
+          editHref={`/${name}/`}
           actions={actions}
           onPageChange={(nextPage) => setPage(nextPage)}
         />

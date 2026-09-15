@@ -12,31 +12,68 @@
   --font-mono: var(--font-geist-mono);
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
 
-html {
-  scroll-behavior: smooth;
-}
+  html {
+    scroll-behavior: smooth;
+  }
 
-body {
-  margin: 0;
-}
+  body {
+    margin: 0;
+  }
 
-th {
-  padding: 0.75em 1.5em;
-}
+  th {
+    padding: 0.75em 1.5em;
+  }
 
-td {
-  padding: 0.5em 1.5em;
-}
+  td {
+    padding: 0.5em 1.5em;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Read-only text inputs / textareas */
+  input[readonly],
+  textarea[readonly],
+  select[readonly] {
+    background-color: #f3f4f6 !important; /* gray-100 */
+    border-color: #e5e7eb !important; /* gray-200 */
+    color: #6b7280 !important; /* gray-500 */
+    cursor: default !important;
+    box-shadow: none !important;
+  }
+
+  input[readonly]:focus,
+  textarea[readonly]:focus,
+  select[readonly] {
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+
+  /* Disabled selects (used as the readOnly equivalent since native <select readonly> doesn't work) */
+  select:disabled {
+    background-color: #f3f4f6 !important;
+    border-color: #e5e7eb !important;
+    color: #6b7280 !important;
+    cursor: default !important;
+    opacity: 1 !important; /* prevent browser default dimming, keep it consistent with inputs */
+    -webkit-text-fill-color: #6b7280 !important; /* Safari sometimes overrides color on disabled */
+  }
+
+  /* Optional: hide the native dropdown arrow affordance on disabled selects
+     so it doesn't look clickable */
+  select:disabled {
+    appearance: none !important;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #0a0a0a;
+      --foreground: #ededed;
+    }
   }
 }
 
