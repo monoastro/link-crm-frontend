@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useAuth } from "../../contexts/AuthContext.jsx";
 import { User, Settings, LogOut } from "lucide-react";
 
 export function ProfileDropdown({
@@ -12,6 +13,7 @@ export function ProfileDropdown({
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { logout } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -68,8 +70,8 @@ export function ProfileDropdown({
           <div className="my-1 border-t border-gray-100" />
 
           <button
-            onClick={() => {}}
-            className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
+            onClick={logout}
+            className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50"
           >
             <LogOut className="h-4 w-4" />
             Logout
