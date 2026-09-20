@@ -3,11 +3,11 @@
 
 import { useContext, useEffect, useState } from "react";
 import { FileText, Plus, Trash2, Upload, X } from "lucide-react";
-import { DefaultsContext } from "@/packages/admin";
+import { DefaultsContext, resolveUrl } from "@/packages/admin";
 
 // Adjust to match your actual documentTypeEnum values.
 // Each value here is also the field name the backend reads as req.files[value]
-const DOCUMENT_TYPES = [
+export const DOCUMENT_TYPES = [
   { value: "passport", label: "Passport" },
   { value: "visa", label: "Visa" },
   { value: "citizenship", label: "Citizenship" },
@@ -39,22 +39,24 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
   const contextDefaults = useContext(DefaultsContext);
 
   // row shape: { id, type, file, objectUrl, existingUrl, fileType }
-  const [rows, setRows] = useState(() => {
+  const [rows, setRows] = useState([])
+
+  useEffect(() => {
     const initial = contextDefaults?.[name];
     if (Array.isArray(initial)) {
-      return initial
+      setRows(initial
         .filter((d) => d?.type)
         .map((d) => ({
           id: nextId(),
           type: d.type,
           file: null,
-          objectUrl: null,
+          objectUrl: resolveUrl({ url: d?.url }),
           existingUrl: d.url ?? "",
           fileType: d.fileType ?? inferFileTypeFromUrl(d.url),
-        }));
+        }))
+      );
     }
-    return [];
-  });
+  }, [contextDefaults]);
 
   const [preview, setPreview] = useState(null); // { src, fileType } | null
 
@@ -190,19 +192,20 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
                   </>
                 ) : (
                   !readOnly && (
-                    <label className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500">
+                    <label htmlFor={`doc_${row.id}`} className="flex h-full w-full cursor-pointer flex-col items-center justify-center gap-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-500">
                       <Upload size={20} />
                       <span className="text-[11px]">Upload file</span>
-                      <input
-                        type="file"
-                        name={row.type}
-                        accept="image/*,application/pdf"
-                        className="hidden"
-                        onChange={(e) => handleFileChange(row.id, e)}
-                      />
                     </label>
                   )
                 )}
+                <input
+                  type="file"
+                  name={row.type}
+                id={`doc_${row.id}`}
+                  accept="image/*,application/pdf"
+                  className="hidden"
+                  onChange={(e) => handleFileChange(row.id, e)}
+                />
               </div>
 
               {!readOnly && (

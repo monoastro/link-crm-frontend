@@ -11,7 +11,7 @@ export const candidates = defineEntity({
     { name: "name", type: "text", label: "Name" },
     { name: "email", type: "email", label: "Email", invisible: true },
     { name: "phone", type: "tel", label: "Phone", invisible: true },
-    { name: "passport", type: "text", label: "Passport" },
+    { name: "passportNumber", type: "text", label: "Passport" },
     { name: "address", type: "text", label: "Address", invisible: true },
     { name: "dob", type: "date", label: "Date of Birth", invisible: true },
     {

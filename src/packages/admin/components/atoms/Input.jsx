@@ -80,7 +80,6 @@ export function Select({ placeholder, children, className, name, required, ...re
   const resolvedPlaceholder = placeholder ?? humanize(name);
   const selectRef = useRef(null);
   const hasDefault = defaultProps.defaultValue != null && defaultProps.defaultValue !== "";
-  console.log('select defults', defaultProps)
 
   return (
     <div className={`flex w-full flex-col gap-1.5 ${className || ""}`}>

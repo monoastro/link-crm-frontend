@@ -13,6 +13,25 @@ import {
 import { Loader2 } from "lucide-react";
 import { Input, Select, Textarea, Form } from "@/packages/admin";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
+import { DOCUMENT_TYPES } from "@/components/templates/CandidateDocumentsField.jsx";
+// or duplicate the list here if it's not exported yet
+
+const DOCUMENT_TYPE_VALUES = DOCUMENT_TYPES.map((t) => t.value);
+const DOCUMENT_TYPE_EXISTING_KEYS = DOCUMENT_TYPE_VALUES.map((t) => `${t}_existing`);
+
+const SECTION_FIELDS = {
+  application: [
+    "appliedCountry", "appliedCategory", "month",
+    "companyId", "reference", "remarks",
+  ],
+  visa: [
+    "visaNumber", "visaStatus", "visaProfession",
+    "visaReceivedDate", "visaExpiryDate", "qvcStatus", "mofaStatus",
+  ],
+  flight: ["flightStatus", "deploymentOn"],
+  medical: ["medicalStatus", "pccStatus"],
+  documents: [...DOCUMENT_TYPE_VALUES, ...DOCUMENT_TYPE_EXISTING_KEYS],
+};
 
 // ---------------------------------------------------------------------------
 // Role config
@@ -36,19 +55,6 @@ const SECTION_OWNERS = {
   documents: ROLES.FRONT_DESK,
 };
 
-const SECTION_FIELDS = {
-  application: [
-    "appliedCountry", "appliedCategory", "month",
-    "companyId", "reference", "remarks",
-  ],
-  visa: [
-    "visaNumber", "visaStatus", "visaProfession",
-    "visaReceivedDate", "visaExpiryDate", "qvcStatus", "mofaStatus",
-  ],
-  flight: ["flightStatus", "deploymentOn"],
-  medical: ["medicalStatus", "pccStatus"],
-  documents: ["documents"],
-};
 
 const GENDER_OPTIONS = ["male", "female", "other"];
 
@@ -96,7 +102,7 @@ export default function CandidateEditPage() {
     // identity fields are always editable by everyone who can see them
     // (front desk owns identity — adjust if admin-only editing is desired)
     const identityFields = [
-      "name", "email", "phone", "passport", "address",
+      "name", "email", "phone", "passportNumber", "address",
       "dob", "gender", "placeOfBirth",
     ];
     if (isAdmin || role === ROLES.FRONT_DESK) {
@@ -106,7 +112,9 @@ export default function CandidateEditPage() {
     const scoped = Object.fromEntries(
       Object.entries(values).filter(([key]) => allowedFields.includes(key))
     );
-    const payload = removeEmptyFields(scoped);
+    const clean = removeEmptyFields(scoped);
+    const payload = new FormData()
+    Object.entries(clean).forEach(([k, v]) => payload.append(k, v))
 
     const url = isNew ? apiPath : `${apiPath}/${id}`;
     const res = isNew ? await post(url, payload) : await patch(url, payload);
@@ -119,7 +127,6 @@ export default function CandidateEditPage() {
   }
 
   const identityReadOnly = !(isAdmin || role === ROLES.FRONT_DESK);
-  console.log('identityread', identityReadOnly, role, isAdmin)
 
   return (
     <AdminLayout title={`${isNew ? "New" : "Edit"} Candidate`} formId="candidate-form">
@@ -133,7 +140,7 @@ export default function CandidateEditPage() {
         <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
           <div className="flex gap-4">
             <Input name="name" placeholder="Full name" required readOnly={identityReadOnly} />
-            <Input name="passport" placeholder="Passport number" required readOnly={identityReadOnly} />
+            <Input name="passportNumber" placeholder="Passport number" required readOnly={identityReadOnly} />
           </div>
           <div className="flex gap-4">
             <Input name="email" type="email" placeholder="Email" readOnly={identityReadOnly} />

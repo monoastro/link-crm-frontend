@@ -106,7 +106,6 @@ export default function DataTable({
   };
 
   const renderCell = (item, field) => {
-    console.log('field key', field)
     const [key, type, ...rest] = field.key.split(":");
     const value = item[key];
 

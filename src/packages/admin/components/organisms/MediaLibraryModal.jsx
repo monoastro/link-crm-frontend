@@ -31,10 +31,8 @@ export function MediaLibraryModal({ onClose, onSelect, name }) {
     media: data?.items,
   };
 
-  console.log("media items", items);
 
   useEffect(() => {
-    console.log("getting logged");
     return () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
     };
