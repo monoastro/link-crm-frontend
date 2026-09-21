@@ -14,7 +14,6 @@ export const DOCUMENT_TYPES = [
   { value: "medical", label: "Medical" },
   { value: "offer_letter", label: "Offer Letter" },
   { value: "ticket", label: "Ticket" },
-  { value: "photo", label: "Photo" },
   { value: "cv", label: "CV" },
   { value: "other", label: "Other" },
 ];
@@ -45,7 +44,7 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
     const initial = contextDefaults?.[name];
     if (Array.isArray(initial)) {
       setRows(initial
-        .filter((d) => d?.type)
+        .filter((d) => d?.type && d.type !== 'photo') // Exclude photo type if present
         .map((d) => ({
           id: nextId(),
           type: d.type,

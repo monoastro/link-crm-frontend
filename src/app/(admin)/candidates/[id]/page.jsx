@@ -2,6 +2,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { Loader2, Camera } from "lucide-react";
 import {
   AdminLayout,
   removeEmptyFields,
@@ -10,11 +12,11 @@ import {
   useToast,
   useAuth,
 } from "@/packages/admin";
-import { Loader2 } from "lucide-react";
 import { Input, Select, Textarea, Form } from "@/packages/admin";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
 import { DOCUMENT_TYPES } from "@/components/templates/CandidateDocumentsField.jsx";
-import { RelationshipField } from "@/packages/admin";
+import { RelationshipField, resolveUrl } from "@/packages/admin";
+import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
 
 const DOCUMENT_TYPE_VALUES = DOCUMENT_TYPES.map((t) => t.value);
 const DOCUMENT_TYPE_EXISTING_KEYS = DOCUMENT_TYPE_VALUES.map((t) => `${t}_existing`);
@@ -77,6 +79,10 @@ export default function CandidateEditPage() {
   const canEdit = (section) => isAdmin || role === SECTION_OWNERS[section];
   const ro = (section) => !canEdit(section);
 
+  const [photoFile, setPhotoFile] = useState(null);
+  const identityReadOnly = !(isAdmin || role === ROLES.FRONT_DESK);
+  const existingPhotoUrl = data?.item?.documents?.find(i => i.type === 'photo')?.url ?? null;
+
   if (!isNew && loading) {
     return (
       <AdminLayout title="Candidate">
@@ -103,6 +109,8 @@ export default function CandidateEditPage() {
       Object.entries(values).filter(([key]) => allowedFields.includes(key))
     );
     const clean = removeEmptyFields(scoped);
+    if (photoFile && !identityReadOnly) clean.photo = photoFile;
+
     const payload = new FormData();
     Object.entries(clean).forEach(([k, v]) => payload.append(k, v));
 
@@ -116,7 +124,6 @@ export default function CandidateEditPage() {
     return res;
   }
 
-  const identityReadOnly = !(isAdmin || role === ROLES.FRONT_DESK);
 
   return (
     <AdminLayout title={`${isNew ? "New" : "Edit"} Candidate`} formId="candidate-form">
@@ -127,25 +134,35 @@ export default function CandidateEditPage() {
         className="flex flex-col gap-6"
       >
         {/* Identity — visible to everyone, editable by front desk / admin only */}
-        <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-          <div className="flex gap-4">
-            <Input name="name" placeholder="Full name" required readOnly={identityReadOnly} />
-            <Input name="passportNumber" placeholder="Passport number" required readOnly={identityReadOnly} />
+        {/* Identity — photo on the left, fields on the right */}
+        <div className="flex gap-6 rounded-sm border border-gray-200 bg-white p-6">
+          <PhotoUpload
+            existingUrl={resolveUrl({ url: existingPhotoUrl })}
+            file={photoFile}
+            onChange={setPhotoFile}
+            readOnly={identityReadOnly}
+          />
+
+          <div className="flex min-w-0 flex-1 flex-col gap-4">
+            <div className="flex gap-4">
+              <Input name="name" placeholder="Full name" required readOnly={identityReadOnly} />
+              <Input name="passportNumber" placeholder="Passport number" required readOnly={identityReadOnly} />
+            </div>
+            <div className="flex gap-4">
+              <Input name="email" type="email" placeholder="Email" readOnly={identityReadOnly} />
+              <Input name="phone" placeholder="Phone" readOnly={identityReadOnly} />
+            </div>
+            <div className="flex gap-4">
+              <Select name="gender" placeholder="Gender" disabled={identityReadOnly} readOnly={identityReadOnly}>
+                {GENDER_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </Select>
+              <Input name="dob" type="date" placeholder="Date of birth" readOnly={identityReadOnly} />
+              <Input name="placeOfBirth" placeholder="Place of birth" readOnly={identityReadOnly} />
+            </div>
+            <Input name="address" placeholder="Address" readOnly={identityReadOnly} />
           </div>
-          <div className="flex gap-4">
-            <Input name="email" type="email" placeholder="Email" readOnly={identityReadOnly} />
-            <Input name="phone" placeholder="Phone" readOnly={identityReadOnly} />
-          </div>
-          <div className="flex gap-4">
-            <Select name="gender" placeholder="Gender" disabled={identityReadOnly} readOnly={identityReadOnly}>
-              {GENDER_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </Select>
-            <Input name="dob" type="date" placeholder="Date of birth" readOnly={identityReadOnly} />
-            <Input name="placeOfBirth" placeholder="Place of birth" readOnly={identityReadOnly} />
-          </div>
-          <Input name="address" placeholder="Address" readOnly={identityReadOnly} />
         </div>
 
         {/* Application details — only front desk / admin see this */}
