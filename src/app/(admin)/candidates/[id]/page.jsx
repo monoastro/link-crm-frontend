@@ -14,7 +14,7 @@ import { Loader2 } from "lucide-react";
 import { Input, Select, Textarea, Form } from "@/packages/admin";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
 import { DOCUMENT_TYPES } from "@/components/templates/CandidateDocumentsField.jsx";
-// or duplicate the list here if it's not exported yet
+import { RelationshipField } from "@/packages/admin";
 
 const DOCUMENT_TYPE_VALUES = DOCUMENT_TYPES.map((t) => t.value);
 const DOCUMENT_TYPE_EXISTING_KEYS = DOCUMENT_TYPE_VALUES.map((t) => `${t}_existing`);
@@ -45,8 +45,6 @@ const ROLES = {
   MEDICAL: "medical",
 };
 
-// Which role "owns" each section. Admin can always see + edit everything.
-// Front desk fields (identity) are visible to everyone regardless of role.
 const SECTION_OWNERS = {
   application: ROLES.FRONT_DESK,
   visa: ROLES.VISA,
@@ -54,7 +52,6 @@ const SECTION_OWNERS = {
   medical: ROLES.MEDICAL,
   documents: ROLES.FRONT_DESK,
 };
-
 
 const GENDER_OPTIONS = ["male", "female", "other"];
 
@@ -76,11 +73,7 @@ export default function CandidateEditPage() {
   const role = user?.role ?? ROLES.FRONT_DESK;
   const isAdmin = role === ROLES.ADMIN;
 
-  // Section visible if admin, or if this role owns the section
   const canView = (section) => isAdmin || role === SECTION_OWNERS[section];
-  // Section editable if admin, or if this role owns the section
-  // (front desk / owning role can always edit their own section fully;
-  // admin can edit everything)
   const canEdit = (section) => isAdmin || role === SECTION_OWNERS[section];
   const ro = (section) => !canEdit(section);
 
@@ -94,13 +87,10 @@ export default function CandidateEditPage() {
   }
 
   async function handleSubmit(values) {
-    // only keep fields belonging to sections this role can edit
     const allowedFields = Object.entries(SECTION_FIELDS)
       .filter(([section]) => canEdit(section))
       .flatMap(([, fields]) => fields);
 
-    // identity fields are always editable by everyone who can see them
-    // (front desk owns identity — adjust if admin-only editing is desired)
     const identityFields = [
       "name", "email", "phone", "passportNumber", "address",
       "dob", "gender", "placeOfBirth",
@@ -113,8 +103,8 @@ export default function CandidateEditPage() {
       Object.entries(values).filter(([key]) => allowedFields.includes(key))
     );
     const clean = removeEmptyFields(scoped);
-    const payload = new FormData()
-    Object.entries(clean).forEach(([k, v]) => payload.append(k, v))
+    const payload = new FormData();
+    Object.entries(clean).forEach(([k, v]) => payload.append(k, v));
 
     const url = isNew ? apiPath : `${apiPath}/${id}`;
     const res = isNew ? await post(url, payload) : await patch(url, payload);
@@ -167,7 +157,16 @@ export default function CandidateEditPage() {
               <Input name="month" placeholder="Month" readOnly={ro("application")} />
             </div>
             <div className="flex gap-4">
-              <Input name="companyId" placeholder="Company ID" readOnly={ro("application")} />
+              <RelationshipField
+                field={{
+                  name: "companyId",
+                  label: "Company",
+                  relationTo: "companies",
+                  labelField: "name",
+                  valueField: "id",
+                  searchable: true,
+                }}
+              />
               <Input name="reference" placeholder="Reference" readOnly={ro("application")} />
             </div>
             <Textarea name="remarks" placeholder="Remarks" readOnly={ro("application")} />

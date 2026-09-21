@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react"; // Import icons for the toggle
 import { Input, Textarea, Select } from '../atoms/Input.jsx'
-import { RelationshipField } from "../atoms/RelationshipField.jsx";
+import { RelationshipField } from "./RelationshipField.jsx";
 import { ImageUploader } from "../templates/ImageUploader.jsx";
 
 // Dedicated Password component to handle show/hide state
@@ -74,6 +74,7 @@ export function PayloadField({ field }) {
   }
 
   if (type === "relationship") {
+    console.log("Rendering relationship field:", field);
     return <RelationshipField field={field} />;
   }
 

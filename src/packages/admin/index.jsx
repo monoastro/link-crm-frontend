@@ -55,7 +55,7 @@ export {
   RateInput,
   RateDisplay,
 } from "./components/atoms/Input.jsx";
-export { RelationshipField } from "./components/atoms/RelationshipField.jsx";
+export { RelationshipField } from "./components/molecules/RelationshipField.jsx";
 export { Badge } from "./components/atoms/Badge.jsx";
 export {
   Button,

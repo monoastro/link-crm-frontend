@@ -106,8 +106,12 @@ export function ApiProvider({ baseUrl, children }) {
     (path, options) => handle(() => request("DELETE", path, undefined, baseUrl), options),
     [handle],
   );
+  const get = useCallback(
+    (path, options) => handle(() => request("GET", path, undefined, baseUrl), options),
+    [handle],
+  );
 
-  const value = useMemo(() => ({ post, patch, del }), [post, patch, del]);
+  const value = useMemo(() => ({ post, patch, del, get }), [post, patch, del, get]);
 
   return <ApiContext.Provider value={value}>{children}</ApiContext.Provider>;
 }
