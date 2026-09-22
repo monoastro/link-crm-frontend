@@ -48,7 +48,7 @@ export function AdminChildrenLayout({
   if (debouncedSearch) {
     // Note: If you want to search a field other than 'name' dynamically,
     // you could read entityConfig.titleField here.
-    params.set("search", debouncedSearch);
+    params.set("query", debouncedSearch);
   }
 
   // Apply active filters to the query params

@@ -57,7 +57,7 @@ export function AdminShell({ children }) {
             <Breadcrumb />
             <ProfileDropdown user={user}/>
           </div>
-        <div className='flex flex-col py-2 flex-1 overflow-y-auto max-w-[1100px] w-full'>
+        <div className='flex flex-col pb-2 flex-1 overflow-y-auto max-w-[1100px] w-full'>
           <div className="flex-1 ">{children}</div>
         </div>
       </div>
