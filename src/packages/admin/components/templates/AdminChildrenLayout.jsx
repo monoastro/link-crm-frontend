@@ -43,12 +43,12 @@ export function AdminChildrenLayout({
   // Build query params
   const params = new URLSearchParams();
   params.set("page", page);
-  params.set("limit", limit);
+  params.set("pageSize", limit);
 
   if (debouncedSearch) {
     // Note: If you want to search a field other than 'name' dynamically,
     // you could read entityConfig.titleField here.
-    params.set("search", debouncedSearch);
+    params.set("query", debouncedSearch);
   }
 
   // Apply active filters to the query params
@@ -101,7 +101,7 @@ export function AdminChildrenLayout({
             className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
           >
             <Plus size={16} />
-            New {capitalise(name)}
+            {entityConfig?.addLabel ?? `New ${capitalise(name)}`}
           </Link>
         </div>
 
@@ -130,7 +130,7 @@ export function AdminChildrenLayout({
                 onChange={(e) => handleFilterChange(filter.field, e.target.value)}
                 className="rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
               >
-                <option value="">All {filter.label}</option>
+                <option value="">{filter.allLabel ?? `All ${filter.label}`}</option>
                 {filter.options.map((opt) => {
                   const val = typeof opt === "string" ? opt : opt.value;
                   const label = typeof opt === "string" ? opt : opt.label;

@@ -55,6 +55,7 @@ export {
   RateInput,
   RateDisplay,
 } from "./components/atoms/Input.jsx";
+export { SearchableSelect } from "./components/atoms/SearchableSelect.jsx";
 export { RelationshipField } from "./components/atoms/RelationshipField.jsx";
 export { Badge } from "./components/atoms/Badge.jsx";
 export {

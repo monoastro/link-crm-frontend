@@ -8,7 +8,7 @@ import { entities } from "@/app/(admin)/entities";
 function tableFields(config) {
   return config.fields
     .filter((f) => f.type !== "relationship" && !f.invisible)
-    .map((f) => ({ key: f.name, head: f.label }));
+    .map((f) => ({ key: f.name, head: f.label, options: f.options }));
 }
 
 export default function EntityListPage() {

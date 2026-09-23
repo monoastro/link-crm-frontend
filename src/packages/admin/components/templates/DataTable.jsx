@@ -106,9 +106,18 @@ export default function DataTable({
   };
 
   const renderCell = (item, field) => {
-    console.log('field key', field)
     const [key, type, ...rest] = field.key.split(":");
     const value = item[key];
+
+    const option = field.options?.find((candidate) => {
+      const optionValue = typeof candidate === "string" ? candidate : candidate.value;
+      return optionValue === value;
+    });
+    const displayValue = option
+      ? typeof option === "string"
+        ? option
+        : option.label
+      : value;
 
     switch (type) {
       case "image":
@@ -178,8 +187,8 @@ export default function DataTable({
 
       default:
         return (
-          <span className="text-sm text-gray-600" title={value}>
-            {value}
+          <span className="text-sm text-gray-600" title={displayValue}>
+            {displayValue}
           </span>
         );
     }

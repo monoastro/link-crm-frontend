@@ -4,6 +4,7 @@ import { Users } from "lucide-react";
 export const users = defineEntity({
   slug: "users",
   label: "Users",
+  addLabel: "Add User",
   icon: Users,
   titleField: "name",
   roles: ["admin"],

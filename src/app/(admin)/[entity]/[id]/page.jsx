@@ -37,7 +37,7 @@ export default function EntityEditPage() {
   if (!entity) notFound();
   const isNew = id === "new";
   const apiPath = `/${entity.slug}`;
-  const { data, loading } = useGet(isNew ? null : `${apiPath}/${id}`);
+  const { data, isLoading: loading } = useGet(isNew ? null : `${apiPath}/${id}`);
 
   if (!isNew && loading) {
     return (
