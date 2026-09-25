@@ -9,6 +9,7 @@ import Breadcrumb from "../molecules/Breadcrumb.jsx";
 import { useRouter } from 'next/navigation'
 import { getEntities } from "../../lib/runtime.config.js";
 import { ProfileDropdown } from "../molecules/ProfileDropdown.jsx";
+import { NotificationBell } from "../organisms/NotificationBell.jsx";
 
 export function AdminShell({ children }) {
   const [panel, setPanel] = useState(true);
@@ -55,7 +56,10 @@ export function AdminShell({ children }) {
       <div className="flex flex-col flex-1 bg-gray-50 overflow-y-auto items-center">
           <div className='flex justify-between w-full p-2 border-b border-gray-200'>
             <Breadcrumb />
-            <ProfileDropdown user={user}/>
+            <div className='flex gap-2 items-center'>
+              <NotificationBell />
+              <ProfileDropdown user={user}/>
+            </div>
           </div>
         <div className='flex flex-col pb-2 flex-1 overflow-y-auto max-w-[1100px] w-full'>
           <div className="flex-1 ">{children}</div>

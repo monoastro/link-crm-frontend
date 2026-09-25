@@ -1,9 +1,9 @@
 // src/app/candidates/[id]/page.js
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   AdminLayout,
   removeEmptyFields,
@@ -11,29 +11,14 @@ import {
   useGet,
   useToast,
   useAuth,
+  SearchableSelect,
+  RelationshipField,
+  resolveUrl,
 } from "@/packages/admin";
 import { Input, Select, Textarea, Form } from "@/packages/admin";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
-import { DOCUMENT_TYPES } from "@/components/templates/CandidateDocumentsField.jsx";
-import { RelationshipField, resolveUrl } from "@/packages/admin";
 import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
-
-const DOCUMENT_TYPE_VALUES = DOCUMENT_TYPES.map((t) => t.value);
-const DOCUMENT_TYPE_EXISTING_KEYS = DOCUMENT_TYPE_VALUES.map((t) => `${t}_existing`);
-
-const SECTION_FIELDS = {
-  application: [
-    "appliedCountry", "appliedCategory", "month",
-    "companyId", "reference", "remarks",
-  ],
-  visa: [
-    "visaNumber", "visaStatus", "visaProfession",
-    "visaReceivedDate", "visaExpiryDate", "qvcStatus", "mofaStatus",
-  ],
-  flight: ["flightStatus", "deploymentOn"],
-  medical: ["medicalStatus", "pccStatus"],
-  documents: [...DOCUMENT_TYPE_VALUES, ...DOCUMENT_TYPE_EXISTING_KEYS],
-};
+import { countries } from "@/app/(admin)/_entities/countries";
 
 // ---------------------------------------------------------------------------
 // Role config
@@ -47,6 +32,8 @@ const ROLES = {
   MEDICAL: "medical",
 };
 
+// Which role "owns" each section. Admin can always see + edit everything.
+// Front desk fields (identity) are visible to everyone regardless of role.
 const SECTION_OWNERS = {
   application: ROLES.FRONT_DESK,
   visa: ROLES.VISA,
@@ -55,7 +42,69 @@ const SECTION_OWNERS = {
   documents: ROLES.FRONT_DESK,
 };
 
+const SECTION_FIELDS = {
+  application: [
+    "appliedCountry", "appliedCategory", "month",
+    "companyId", "reference", "remarks",
+  ],
+  visa: [
+    "visaNumber", "visaStatus", "visaProfession",
+    "visaReceivedDate", "visaExpiryDate", "qvcStatus", "mofaStatus",
+  ],
+  flight: ["flightStatus", "deploymentOn"],
+  medical: ["medicalStatus", "pccStatus"],
+  documents: ["documents"],
+};
+
 const GENDER_OPTIONS = ["male", "female", "other"];
+const APPLIED_COUNTRY_OPTIONS = countries.map(({ label }) => ({
+  value: label,
+  label,
+}));
+const PROFESSION_OPTIONS = ["Cook", "Kitchen Helper"];
+const MONTH_OPTIONS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+const VISA_STATUS_OPTIONS = ["Waiting", "Received", "Rejected"];
+const QVC_STATUS_OPTIONS = ["Cleared", "Pending", "Revisit Required", "Unfit"];
+const MOFA_STATUS_OPTIONS = ["Pending", "Attested", "Rejected"];
+const FLIGHT_STATUS_OPTIONS = ["Not flown", "Flown"];
+const MEDICAL_STATUS_OPTIONS = ["Fit", "Unfit", "Pending"];
+const PCC_STATUS_OPTIONS = ["Pending", "Received"];
+
+function PassportStatusField({ defaultValue, readOnly }) {
+  const [selectedValue, setSelectedValue] = useState(String(defaultValue ?? "").toLowerCase());
+
+  return (
+    <fieldset className="flex min-w-[260px] flex-1 flex-col gap-1.5">
+      <legend className="text-sm font-medium text-gray-700">Physical passport</legend>
+      <div className="flex gap-3 pt-1">
+        {["present", "not present"].map((value) => (
+          <label
+            key={value}
+            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2 text-sm capitalize transition-colors ${
+              selectedValue === value
+                ? "border-blue-500 bg-blue-50 text-blue-800"
+                : "border-gray-200 text-gray-700"
+            } ${readOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-50"}`}
+          >
+            <input
+              type="radio"
+              name="ppStatus"
+              value={value}
+              checked={selectedValue === value}
+              onChange={() => setSelectedValue(value)}
+              disabled={readOnly}
+              className="h-4 w-4 accent-blue-600"
+            />
+            {value}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // Page
@@ -70,18 +119,41 @@ export default function CandidateEditPage() {
 
   const isNew = id === "new";
   const apiPath = "/candidates";
-  const { data, loading } = useGet(isNew ? null : `${apiPath}/${id}`);
+  const { data, isLoading: loading } = useGet(isNew ? null : `${apiPath}/${id}`);
+  const [appliedCountryOverride, setAppliedCountryOverride] = useState(null);
+  const [customProfessionOptions, setCustomProfessionOptions] = useState([]);
+  const [photoFile, setPhotoFile] = useState(null);
 
   const role = user?.role ?? ROLES.FRONT_DESK;
   const isAdmin = role === ROLES.ADMIN;
 
+  // Section visible if admin, or if this role owns the section
   const canView = (section) => isAdmin || role === SECTION_OWNERS[section];
+  // Section editable if admin, or if this role owns the section
   const canEdit = (section) => isAdmin || role === SECTION_OWNERS[section];
   const ro = (section) => !canEdit(section);
 
-  const [photoFile, setPhotoFile] = useState(null);
+  const appliedCountry = appliedCountryOverride ?? data?.item?.appliedCountry ?? "";
+  const professionOptions = Array.from(
+    new Set([
+      ...PROFESSION_OPTIONS,
+      ...customProfessionOptions,
+      data?.item?.appliedCategory,
+      data?.item?.visaProfession,
+    ].filter(Boolean)),
+  );
+  const isQatar = ["qatar", "qa"].includes(appliedCountry.toLowerCase());
+
+  const addProfession = (profession) => {
+    setCustomProfessionOptions((current) =>
+      current.some((option) => option.toLowerCase() === profession.toLowerCase())
+        ? current
+        : [...current, profession],
+    );
+  };
+
   const identityReadOnly = !(isAdmin || role === ROLES.FRONT_DESK);
-  const existingPhotoUrl = data?.item?.documents?.find(i => i.type === 'photo')?.url ?? null;
+  const existingPhotoUrl = data?.item?.documents?.find((i) => i.type === "photo")?.url ?? null;
 
   if (!isNew && loading) {
     return (
@@ -98,7 +170,7 @@ export default function CandidateEditPage() {
       .flatMap(([, fields]) => fields);
 
     const identityFields = [
-      "name", "email", "phone", "passportNumber", "address",
+      "name", "email", "phone", "passportNumber", "ppStatus", "address",
       "dob", "gender", "placeOfBirth",
     ];
     if (isAdmin || role === ROLES.FRONT_DESK) {
@@ -114,6 +186,19 @@ export default function CandidateEditPage() {
     const payload = new FormData();
     Object.entries(clean).forEach(([k, v]) => payload.append(k, v));
 
+    // Documents come through as per-row fields (other_<id>, other_existing_<id>)
+    // so nothing collides in values — collect them into the shared keys the
+    // backend expects.
+    if (canEdit("documents")) {
+      Object.entries(values).forEach(([key, val]) => {
+        if (key.startsWith("other_existing_") && val) {
+          payload.append("other_existing", val);
+        } else if (key.startsWith("other_") && val instanceof File && val.size > 0) {
+          payload.append("other", val);
+        }
+      });
+    }
+
     const url = isNew ? apiPath : `${apiPath}/${id}`;
     const res = isNew ? await post(url, payload) : await patch(url, payload);
 
@@ -124,7 +209,6 @@ export default function CandidateEditPage() {
     return res;
   }
 
-
   return (
     <AdminLayout title={`${isNew ? "New" : "Edit"} Candidate`} formId="candidate-form">
       <Form
@@ -134,7 +218,6 @@ export default function CandidateEditPage() {
         className="flex flex-col gap-6"
       >
         {/* Identity — visible to everyone, editable by front desk / admin only */}
-        {/* Identity — photo on the left, fields on the right */}
         <div className="flex gap-6 rounded-sm border border-gray-200 bg-white p-6">
           <PhotoUpload
             existingUrl={resolveUrl({ url: existingPhotoUrl })}
@@ -147,6 +230,10 @@ export default function CandidateEditPage() {
             <div className="flex gap-4">
               <Input name="name" placeholder="Full name" required readOnly={identityReadOnly} />
               <Input name="passportNumber" placeholder="Passport number" required readOnly={identityReadOnly} />
+              <PassportStatusField
+                defaultValue={data?.item?.ppStatus}
+                readOnly={identityReadOnly}
+              />
             </div>
             <div className="flex gap-4">
               <Input name="email" type="email" placeholder="Email" readOnly={identityReadOnly} />
@@ -169,9 +256,33 @@ export default function CandidateEditPage() {
         {canView("application") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
-              <Input name="appliedCountry" placeholder="Applied country" readOnly={ro("application")} />
-              <Input name="appliedCategory" placeholder="Applied category" readOnly={ro("application")} />
-              <Input name="month" placeholder="Month" readOnly={ro("application")} />
+              <Select
+                name="appliedCountry"
+                placeholder="Applied country"
+                disabled={ro("application")}
+                onChange={(event) => setAppliedCountryOverride(event.target.value)}
+              >
+                {APPLIED_COUNTRY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </Select>
+              <SearchableSelect
+                name="appliedCategory"
+                label="Applied category"
+                options={professionOptions}
+                allowAdd
+                disabled={ro("application")}
+                onAddOption={addProfession}
+              />
+              <Select name="month" placeholder="Month" disabled={ro("application")}>
+                {MONTH_OPTIONS.map((month) => (
+                  <option key={month} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </Select>
             </div>
             <div className="flex gap-4">
               <RelationshipField
@@ -183,6 +294,7 @@ export default function CandidateEditPage() {
                   valueField: "id",
                   searchable: true,
                 }}
+                readOnly={ro("application")}
               />
               <Input name="reference" placeholder="Reference" readOnly={ro("application")} />
             </div>
@@ -195,16 +307,41 @@ export default function CandidateEditPage() {
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
               <Input name="visaNumber" placeholder="Visa number" readOnly={ro("visa")} />
-              <Input name="visaStatus" placeholder="Visa status" readOnly={ro("visa")} />
-              <Input name="visaProfession" placeholder="Visa profession" readOnly={ro("visa")} />
+              <Select name="visaStatus" placeholder="Visa status" disabled={ro("visa")}>
+                {VISA_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
+              <SearchableSelect
+                name="visaProfession"
+                label="Visa profession"
+                options={professionOptions}
+                disabled={ro("visa")}
+              />
             </div>
             <div className="flex gap-4">
               <Input name="visaReceivedDate" type="date" placeholder="Visa received date" readOnly={ro("visa")} />
               <Input name="visaExpiryDate" type="date" placeholder="Visa expiry date" readOnly={ro("visa")} />
             </div>
             <div className="flex gap-4">
-              <Input name="qvcStatus" placeholder="QVC status" readOnly={ro("visa")} />
-              <Input name="mofaStatus" placeholder="MOFA status" readOnly={ro("visa")} />
+              {isQatar && (
+                <Select name="qvcStatus" placeholder="QVC status" disabled={ro("visa")}>
+                  {QVC_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </Select>
+              )}
+              <Select name="mofaStatus" placeholder="MOFA status" disabled={ro("visa")}>
+                {MOFA_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
         )}
@@ -214,7 +351,13 @@ export default function CandidateEditPage() {
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
               <Input name="deploymentOn" type="date" placeholder="Deployment date" readOnly={ro("flight")} />
-              <Input name="flightStatus" placeholder="Flight status" readOnly={ro("flight")} />
+              <Select name="flightStatus" placeholder="Flight status" disabled={ro("flight")}>
+                {FLIGHT_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
         )}
@@ -223,8 +366,20 @@ export default function CandidateEditPage() {
         {canView("medical") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
-              <Input name="medicalStatus" placeholder="Medical status" readOnly={ro("medical")} />
-              <Input name="pccStatus" placeholder="PCC status" readOnly={ro("medical")} />
+              <Select name="medicalStatus" placeholder="Medical status" disabled={ro("medical")}>
+                {MEDICAL_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
+              <Select name="pccStatus" placeholder="PCC status" disabled={ro("medical")}>
+                {PCC_STATUS_OPTIONS.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </Select>
             </div>
           </div>
         )}

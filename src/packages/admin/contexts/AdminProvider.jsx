@@ -4,6 +4,8 @@ import { AuthProvider } from "./AuthContext.jsx";
 import { AdminGate } from "../components/templates/AdminGate.jsx";
 import { ToastProvider } from "./ToastContext.jsx"
 import { AdminShell } from "../components/templates/AdminShell.jsx";
+import { NotificationsProvider } from "./NotificationsContext.jsx";
+import NotificationToaster from "../components/organisms/NotificationToaster.jsx";
 import { getRuntimeConfig } from "../lib/runtime.config.js";
 
 export function AdminProvider({ children }) {
@@ -20,9 +22,14 @@ export function AdminProvider({ children }) {
     <ToastProvider>
       <ApiProvider baseUrl={config.apiBaseUrl} >
         <AuthProvider>
+          <NotificationsProvider>
             <AdminGate>
-              <AdminShell>{children}</AdminShell>
+              <AdminShell>
+                <NotificationToaster />
+                {children}
+              </AdminShell>
             </AdminGate>
+          </NotificationsProvider>
         </AuthProvider>
       </ApiProvider>
     </ToastProvider>

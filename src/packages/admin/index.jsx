@@ -4,6 +4,7 @@
 // --- Setup / providers ---
 export { AdminProvider } from "./contexts/AdminProvider.jsx";
 export { useApi, useGet } from "./contexts/ApiContext.jsx";
+export { useNotificationsContext, NotificationsProvider } from "./contexts/NotificationsContext.jsx";
 export { AuthProvider, useAuth } from "./contexts/AuthContext.jsx";
 export { AdminGate } from "./components/templates/AdminGate.jsx";
 export { AdminShell } from "./components/templates/AdminShell.jsx";
@@ -56,6 +57,7 @@ export {
   RateDisplay,
 } from "./components/atoms/Input.jsx";
 export { RelationshipField } from "./components/molecules/RelationshipField.jsx";
+export { SearchableSelect } from "./components/atoms/SearchableSelect.jsx";
 export { Badge } from "./components/atoms/Badge.jsx";
 export {
   Button,
