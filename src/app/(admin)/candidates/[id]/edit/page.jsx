@@ -149,7 +149,7 @@ export default function CandidateEditPage({ idOverride } = {}) {
   // candidate doesn't silently blank out their saved value.
   const vacancyPositions = (companyData?.item?.vacancies ?? [])
     .filter((v) => v.status === "open")
-    .map((v) => v.position);
+    .map((v) => ({ value: v.id, label: v.position }));
 
   // Both profession fields use the same company vacancy list, while their
   // selected values remain independent. Keep saved values available when a
@@ -157,8 +157,6 @@ export default function CandidateEditPage({ idOverride } = {}) {
   const professionOptions = Array.from(
     new Set([
       ...vacancyPositions,
-      data?.item?.appliedCategory,
-      data?.item?.visaProfession,
     ].filter(Boolean)),
   );
 

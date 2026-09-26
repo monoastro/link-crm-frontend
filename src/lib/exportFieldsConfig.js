@@ -18,9 +18,9 @@ export const EXPORT_FIELD_GROUPS = [
     group: "Application",
     fields: [
       { key: "appliedCountry", label: "Applied Country" },
-      { key: "appliedCategory", label: "Applied Category" },
+      { key: "appliedCategoryName", label: "Applied Category" },
       { key: "month", label: "Month" },
-      { key: "companyId", label: "Company" },
+      { key: "companyName", label: "Company" },
       { key: "reference", label: "Reference" },
       { key: "remarks", label: "Remarks" },
     ],
@@ -60,5 +60,6 @@ export const ALL_EXPORT_FIELDS = EXPORT_FIELD_GROUPS.flatMap((g) => g.fields);
 export const DEFAULT_CHECKED_KEYS = [
   "name", "phone", "passportNumber",
   "appliedCountry", "appliedCategory",
+  "companyName", 
   "visaStatus", "flightStatus", "medicalStatus",
 ];
