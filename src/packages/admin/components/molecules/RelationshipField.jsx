@@ -19,7 +19,7 @@ function humanize(name = "") {
     .join(" ");
 }
 
-export function RelationshipField({ field }) {
+export function RelationshipField({ field, onChange }) {
   const {
     name: rawName,
     label,
@@ -125,6 +125,7 @@ export function RelationshipField({ field }) {
     touchedRef.current = true;
     setSelectedId(option[valueField]);
     setSelectedLabel(String(option[labelField]));
+    onChange?.(option[valueField]);
     setOpen(false);
     setSearch("");
   }

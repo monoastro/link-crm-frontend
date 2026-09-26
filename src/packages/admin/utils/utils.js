@@ -7,8 +7,10 @@ export function cn(...inputs) {
 }
 
 export function resolveUrl(media) {
+  if (!media?.url) return null;
+
   const host = getHost();
-  return media.url?.startsWith("http") ? media.url : `${host}${media.url}`;
+  return media.url.startsWith("http") ? media.url : `${host}${media.url}`;
 }
 
 export function repeat(n, item) {

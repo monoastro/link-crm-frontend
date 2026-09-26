@@ -32,8 +32,6 @@ const ROLES = {
   MEDICAL: "medical",
 };
 
-// Which role "owns" each section. Admin can always see + edit everything.
-// Front desk fields (identity) are visible to everyone regardless of role.
 const SECTION_OWNERS = {
   application: ROLES.FRONT_DESK,
   visa: ROLES.VISA,
@@ -124,27 +122,52 @@ export default function CandidateEditPage() {
   const [customProfessionOptions, setCustomProfessionOptions] = useState([]);
   const [photoFile, setPhotoFile] = useState(null);
 
+  // Tracks whichever company is currently selected in the "companyId"
+  // RelationshipField. Seeded from the loaded candidate on edit, but updates
+  // live whenever the user picks a different company.
+  const [selectedCompanyId, setSelectedCompanyId] = useState(null);
+  const companyId = selectedCompanyId ?? data?.item?.companyId ?? null;
+
+  // As soon as a company is selected (either from the loaded candidate or a
+  // fresh pick), fetch that company's full record — including its
+  // vacancies — so the "applied category" field can be populated from it.
+  const { data: companyData, isLoading: companyLoading } = useGet(
+    companyId ? `/companies/${companyId}` : null
+  );
+
   const role = user?.role ?? ROLES.FRONT_DESK;
   const isAdmin = role === ROLES.ADMIN;
 
-  // Section visible if admin, or if this role owns the section
   const canView = (section) => isAdmin || role === SECTION_OWNERS[section];
-  // Section editable if admin, or if this role owns the section
   const canEdit = (section) => isAdmin || role === SECTION_OWNERS[section];
   const ro = (section) => !canEdit(section);
 
   const appliedCountry = appliedCountryOverride ?? data?.item?.appliedCountry ?? "";
-  const professionOptions = Array.from(
+
+  // Applied category options = the selected company's open vacancy
+  // positions. Always keep the candidate's currently-saved category in the
+  // list too, even if that vacancy has since closed, so editing an existing
+  // candidate doesn't silently blank out their saved value.
+  const vacancyPositions = (companyData?.item?.vacancies ?? [])
+    .filter((v) => v.status === "open")
+    .map((v) => v.position);
+
+  const appliedCategoryOptions = Array.from(
+    new Set([...vacancyPositions, data?.item?.appliedCategory].filter(Boolean))
+  );
+
+  // Visa profession is independent of company/vacancies — unchanged.
+  const visaProfessionOptions = Array.from(
     new Set([
       ...PROFESSION_OPTIONS,
       ...customProfessionOptions,
-      data?.item?.appliedCategory,
       data?.item?.visaProfession,
     ].filter(Boolean)),
   );
+
   const isQatar = ["qatar", "qa"].includes(appliedCountry.toLowerCase());
 
-  const addProfession = (profession) => {
+  const addVisaProfession = (profession) => {
     setCustomProfessionOptions((current) =>
       current.some((option) => option.toLowerCase() === profession.toLowerCase())
         ? current
@@ -186,9 +209,6 @@ export default function CandidateEditPage() {
     const payload = new FormData();
     Object.entries(clean).forEach(([k, v]) => payload.append(k, v));
 
-    // Documents come through as per-row fields (other_<id>, other_existing_<id>)
-    // so nothing collides in values — collect them into the shared keys the
-    // backend expects.
     if (canEdit("documents")) {
       Object.entries(values).forEach(([key, val]) => {
         if (key.startsWith("other_existing_") && val) {
@@ -217,7 +237,7 @@ export default function CandidateEditPage() {
         onSubmit={handleSubmit}
         className="flex flex-col gap-6"
       >
-        {/* Identity — visible to everyone, editable by front desk / admin only */}
+        {/* Identity */}
         <div className="flex gap-6 rounded-sm border border-gray-200 bg-white p-6">
           <PhotoUpload
             existingUrl={resolveUrl({ url: existingPhotoUrl })}
@@ -252,7 +272,7 @@ export default function CandidateEditPage() {
           </div>
         </div>
 
-        {/* Application details — only front desk / admin see this */}
+        {/* Application details */}
         {canView("application") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
@@ -268,23 +288,7 @@ export default function CandidateEditPage() {
                   </option>
                 ))}
               </Select>
-              <SearchableSelect
-                name="appliedCategory"
-                label="Applied category"
-                options={professionOptions}
-                allowAdd
-                disabled={ro("application")}
-                onAddOption={addProfession}
-              />
-              <Select name="month" placeholder="Month" disabled={ro("application")}>
-                {MONTH_OPTIONS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div className="flex gap-4">
+
               <RelationshipField
                 field={{
                   name: "companyId",
@@ -295,14 +299,46 @@ export default function CandidateEditPage() {
                   searchable: true,
                 }}
                 readOnly={ro("application")}
+                onChange={(value) => setSelectedCompanyId(value || null)}
+              />
+
+              <Select name="month" placeholder="Month" disabled={ro("application")}>
+                {MONTH_OPTIONS.map((month) => (
+                  <option key={month} value={month}>
+                    {month}
+                  </option>
+                ))}
+              </Select>
+            </div>
+
+            <div className="flex gap-4">
+              {/* Applied category is enabled only once a company is chosen —
+                  its options come from that company's open vacancies,
+                  fetched as soon as companyId changes. */}
+              <SearchableSelect
+                key={companyId ?? "no-company"}
+                name="appliedCategory"
+                label="Applied category"
+                options={appliedCategoryOptions}
+                disabled={ro("application") || !companyId || companyLoading}
+                placeholder={
+                  !companyId
+                    ? "Select a company first"
+                    : companyLoading
+                    ? "Loading vacancies…"
+                    : appliedCategoryOptions.length
+                    ? "Select applied category"
+                    : "No open vacancies for this company"
+                }
               />
               <Input name="reference" placeholder="Reference" readOnly={ro("application")} />
             </div>
+
             <Textarea name="remarks" placeholder="Remarks" readOnly={ro("application")} />
           </div>
         )}
 
-        {/* Visa — only visa / admin see this */}
+        {/* Visa */}
         {canView("visa") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
@@ -317,8 +353,10 @@ export default function CandidateEditPage() {
               <SearchableSelect
                 name="visaProfession"
                 label="Visa profession"
-                options={professionOptions}
+                options={visaProfessionOptions}
+                allowAdd
                 disabled={ro("visa")}
+                onAddOption={addVisaProfession}
               />
             </div>
             <div className="flex gap-4">
@@ -346,7 +384,7 @@ export default function CandidateEditPage() {
           </div>
         )}
 
-        {/* Flight — only flight / admin see this */}
+        {/* Flight */}
         {canView("flight") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
@@ -362,7 +400,7 @@ export default function CandidateEditPage() {
           </div>
         )}
 
-        {/* Medical — only medical / admin see this */}
+        {/* Medical */}
         {canView("medical") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
@@ -384,7 +422,7 @@ export default function CandidateEditPage() {
           </div>
         )}
 
-        {/* Documents — only front desk / admin see this */}
+        {/* Documents */}
         {canView("documents") && (
           <div className="rounded-sm border border-gray-200 bg-white p-6">
             <CandidateDocumentsField

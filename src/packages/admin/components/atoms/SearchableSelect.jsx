@@ -15,6 +15,7 @@ export function SearchableSelect({
   disabled = false,
   readOnly = false,
   allowAdd = false,
+  onChange,
   onAddOption,
 }) {
   const defaults = useContext(DefaultsContext);
@@ -46,6 +47,7 @@ export function SearchableSelect({
   const choose = (optionValue, optionLabel = optionValue) => {
     setValue(optionValue);
     setQuery(optionLabel);
+    onChange?.(optionValue);
     setIsOpen(false);
     setAdding(false);
   };

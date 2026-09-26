@@ -10,6 +10,7 @@ export const companies = defineEntity({
   roles: ["admin"],
   fields: [
     { name: "name", type: "text", label: "Name", required: true },
+    { name: "country", type: "text", label: "Country", required: true },
     {
       name: "parentCompanyId",
       type: "relationship",

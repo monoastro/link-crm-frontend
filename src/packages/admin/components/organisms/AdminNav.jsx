@@ -16,7 +16,7 @@ export function AdminNav({ items, panel }) {
   return (
     <ul className="flex flex-col gap-1">
       {Object.entries(visibleitems ?? {}).map(([key, value]) => {
-        const isactive = pathname.startsWith("/admin/" + key);
+        const isactive = pathname.startsWith("/" + key);
         return (
           <li key={key} title={key} className="w-full outline-none">
             <Link href={`/${key}`} className="block w-full">
