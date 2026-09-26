@@ -15,7 +15,7 @@ import {
   RelationshipField,
   resolveUrl,
 } from "@/packages/admin";
-import { Input, Select, Textarea, Form } from "@/packages/admin";
+import { Input, Textarea, Form } from "@/packages/admin";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
 import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
 import { countries } from "@/app/(admin)/_entities/countries";
@@ -59,7 +59,6 @@ const APPLIED_COUNTRY_OPTIONS = countries.map(({ label }) => ({
   value: label,
   label,
 }));
-const PROFESSION_OPTIONS = ["Cook", "Kitchen Helper"];
 const MONTH_OPTIONS = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
@@ -120,7 +119,6 @@ export default function CandidateEditPage({ idOverride } = {}) {
   const apiPath = "/candidates";
   const { data, isLoading: loading } = useGet(isNew ? null : `${apiPath}/${id}`);
   const [appliedCountryOverride, setAppliedCountryOverride] = useState(null);
-  const [customProfessionOptions, setCustomProfessionOptions] = useState([]);
   const [photoFile, setPhotoFile] = useState(null);
 
   // Tracks whichever company is currently selected in the "companyId"
@@ -153,28 +151,18 @@ export default function CandidateEditPage({ idOverride } = {}) {
     .filter((v) => v.status === "open")
     .map((v) => v.position);
 
-  const appliedCategoryOptions = Array.from(
-    new Set([...vacancyPositions, data?.item?.appliedCategory].filter(Boolean))
-  );
-
-  // Visa profession is independent of company/vacancies — unchanged.
-  const visaProfessionOptions = Array.from(
+  // Both profession fields use the same company vacancy list, while their
+  // selected values remain independent. Keep saved values available when a
+  // vacancy has since closed or the saved values differ from one another.
+  const professionOptions = Array.from(
     new Set([
-      ...PROFESSION_OPTIONS,
-      ...customProfessionOptions,
+      ...vacancyPositions,
+      data?.item?.appliedCategory,
       data?.item?.visaProfession,
     ].filter(Boolean)),
   );
 
   const isQatar = ["qatar", "qa"].includes(appliedCountry.toLowerCase());
-
-  const addVisaProfession = (profession) => {
-    setCustomProfessionOptions((current) =>
-      current.some((option) => option.toLowerCase() === profession.toLowerCase())
-        ? current
-        : [...current, profession],
-    );
-  };
 
   const identityReadOnly = !(isAdmin || role === ROLES.FRONT_DESK);
   const existingPhotoUrl = data?.item?.documents?.find((i) => i.type === "photo")?.url ?? null;
@@ -261,11 +249,12 @@ export default function CandidateEditPage({ idOverride } = {}) {
               <Input name="phone" placeholder="Phone" readOnly={identityReadOnly} />
             </div>
             <div className="flex gap-4">
-              <Select name="gender" placeholder="Gender" disabled={identityReadOnly} readOnly={identityReadOnly}>
-                {GENDER_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="gender"
+                label="Gender"
+                options={GENDER_OPTIONS}
+                disabled={identityReadOnly}
+              />
               <Input name="dob" type="date" placeholder="Date of birth" readOnly={identityReadOnly} />
               <Input name="placeOfBirth" placeholder="Place of birth" readOnly={identityReadOnly} />
             </div>
@@ -277,18 +266,13 @@ export default function CandidateEditPage({ idOverride } = {}) {
         {canView("application") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
-              <Select
+              <SearchableSelect
                 name="appliedCountry"
-                placeholder="Applied country"
+                label="Applied country"
+                options={APPLIED_COUNTRY_OPTIONS}
                 disabled={ro("application")}
-                onChange={(event) => setAppliedCountryOverride(event.target.value)}
-              >
-                {APPLIED_COUNTRY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </Select>
+                onChange={setAppliedCountryOverride}
+              />
 
               <RelationshipField
                 field={{
@@ -303,13 +287,12 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 onChange={(value) => setSelectedCompanyId(value || null)}
               />
 
-              <Select name="month" placeholder="Month" disabled={ro("application")}>
-                {MONTH_OPTIONS.map((month) => (
-                  <option key={month} value={month}>
-                    {month}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="month"
+                label="Month"
+                options={MONTH_OPTIONS}
+                disabled={ro("application")}
+              />
             </div>
 
             <div className="flex gap-4">
@@ -320,14 +303,14 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 key={companyId ?? "no-company"}
                 name="appliedCategory"
                 label="Applied category"
-                options={appliedCategoryOptions}
+                options={professionOptions}
                 disabled={ro("application") || !companyId || companyLoading}
                 placeholder={
                   !companyId
                     ? "Select a company first"
                     : companyLoading
                     ? "Loading vacancies…"
-                    : appliedCategoryOptions.length
+                    : professionOptions.length
                     ? "Select applied category"
                     : "No open vacancies for this company"
                 }
@@ -344,20 +327,17 @@ export default function CandidateEditPage({ idOverride } = {}) {
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
               <Input name="visaNumber" placeholder="Visa number" readOnly={ro("visa")} />
-              <Select name="visaStatus" placeholder="Visa status" disabled={ro("visa")}>
-                {VISA_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="visaStatus"
+                label="Visa status"
+                options={VISA_STATUS_OPTIONS}
+                disabled={ro("visa")}
+              />
               <SearchableSelect
                 name="visaProfession"
                 label="Visa profession"
-                options={visaProfessionOptions}
-                allowAdd
+                options={professionOptions}
                 disabled={ro("visa")}
-                onAddOption={addVisaProfession}
               />
             </div>
             <div className="flex gap-4">
@@ -366,21 +346,19 @@ export default function CandidateEditPage({ idOverride } = {}) {
             </div>
             <div className="flex gap-4">
               {isQatar && (
-                <Select name="qvcStatus" placeholder="QVC status" disabled={ro("visa")}>
-                  {QVC_STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </Select>
+                <SearchableSelect
+                  name="qvcStatus"
+                  label="QVC status"
+                  options={QVC_STATUS_OPTIONS}
+                  disabled={ro("visa")}
+                />
               )}
-              <Select name="mofaStatus" placeholder="MOFA status" disabled={ro("visa")}>
-                {MOFA_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="mofaStatus"
+                label="MOFA status"
+                options={MOFA_STATUS_OPTIONS}
+                disabled={ro("visa")}
+              />
             </div>
           </div>
         )}
@@ -390,13 +368,12 @@ export default function CandidateEditPage({ idOverride } = {}) {
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
               <Input name="deploymentOn" type="date" placeholder="Deployment date" readOnly={ro("flight")} />
-              <Select name="flightStatus" placeholder="Flight status" disabled={ro("flight")}>
-                {FLIGHT_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="flightStatus"
+                label="Flight status"
+                options={FLIGHT_STATUS_OPTIONS}
+                disabled={ro("flight")}
+              />
             </div>
           </div>
         )}
@@ -405,20 +382,18 @@ export default function CandidateEditPage({ idOverride } = {}) {
         {canView("medical") && (
           <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
             <div className="flex gap-4">
-              <Select name="medicalStatus" placeholder="Medical status" disabled={ro("medical")}>
-                {MEDICAL_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
-              <Select name="pccStatus" placeholder="PCC status" disabled={ro("medical")}>
-                {PCC_STATUS_OPTIONS.map((status) => (
-                  <option key={status} value={status}>
-                    {status}
-                  </option>
-                ))}
-              </Select>
+              <SearchableSelect
+                name="medicalStatus"
+                label="Medical status"
+                options={MEDICAL_STATUS_OPTIONS}
+                disabled={ro("medical")}
+              />
+              <SearchableSelect
+                name="pccStatus"
+                label="PCC status"
+                options={PCC_STATUS_OPTIONS}
+                disabled={ro("medical")}
+              />
             </div>
           </div>
         )}

@@ -1,9 +1,9 @@
 // src/components/atoms/RelationshipField.jsx
 "use client";
 
-import { useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { ChevronDown, Loader2, Search, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useApi } from "@/packages/admin";
 import { DefaultsContext } from "@/packages/admin";
 
@@ -19,7 +19,7 @@ function humanize(name = "") {
     .join(" ");
 }
 
-export function RelationshipField({ field, onChange }) {
+export function RelationshipField({ field, onChange, readOnly = false }) {
   const {
     name: rawName,
     label,
@@ -39,7 +39,9 @@ export function RelationshipField({ field, onChange }) {
 
   // Latest `get` in a ref so an unstable useApi identity can't retrigger the fetch effect.
   const getRef = useRef(get);
-  getRef.current = get;
+  useEffect(() => {
+    getRef.current = get;
+  }, [get]);
 
   const resolvedLabel = label ?? humanize(name);
   const resolvedPlaceholder = placeholder ?? `Select ${resolvedLabel.toLowerCase()}...`;
@@ -55,6 +57,7 @@ export function RelationshipField({ field, onChange }) {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [selectedId, setSelectedId] = useState(defaultValue);
   const [selectedLabel, setSelectedLabel] = useState(defaultLabel);
 
@@ -103,13 +106,6 @@ export function RelationshipField({ field, onChange }) {
     return () => clearTimeout(timeout);
   }, [open, needsLabel, search, relationTo, excludeSelf, params?.id, valueField]);
 
-  // Resolve the selected label from whatever options were fetched.
-  useEffect(() => {
-    if (!needsLabel) return;
-    const match = options.find((o) => String(o[valueField]) === String(selectedId));
-    if (match) setSelectedLabel(String(match[labelField]));
-  }, [options, needsLabel, selectedId, valueField, labelField]);
-
   // Close dropdown on outside click
   useEffect(() => {
     function handleClickOutside(e) {
@@ -121,6 +117,12 @@ export function RelationshipField({ field, onChange }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const displayOptions = searchable || !search
+    ? options
+    : options.filter((o) =>
+        String(o[labelField]).toLowerCase().includes(search.toLowerCase()),
+      );
+
   function handleSelect(option) {
     touchedRef.current = true;
     setSelectedId(option[valueField]);
@@ -128,33 +130,46 @@ export function RelationshipField({ field, onChange }) {
     onChange?.(option[valueField]);
     setOpen(false);
     setSearch("");
-  }
-
-  function handleClear(e) {
-    e.stopPropagation();
-    touchedRef.current = true;
-    setSelectedId("");
-    setSelectedLabel("");
+    setHighlightedIndex(0);
   }
 
   function handleOpen() {
+    if (readOnly) return;
+    setSearch(displayLabel);
     setOpen(true);
+    setHighlightedIndex(0);
     setTimeout(() => inputRef.current?.focus(), 0);
   }
 
-  const displayOptions = useMemo(() => {
-    if (searchable) return options;
-    if (!search) return options;
-    return options.filter((o) =>
-      String(o[labelField]).toLowerCase().includes(search.toLowerCase())
-    );
-  }, [options, search, searchable, labelField]);
+  function handleKeyDown(event) {
+    if (!open || displayOptions.length === 0) {
+      if (event.key === "Enter" && !open) handleOpen();
+      return;
+    }
 
-  const triggerText = selectedLabel
-    ? selectedLabel
-    : needsLabel && loading
-    ? "Loading…"
-    : resolvedPlaceholder;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.min(current + 1, displayOptions.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      handleSelect(displayOptions[highlightedIndex] ?? displayOptions[0]);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+    }
+  }
+
+  const resolvedSelectedOption = options.find(
+    (option) => String(option[valueField]) === String(selectedId),
+  );
+  const displayLabel = selectedLabel || (
+    needsLabel && resolvedSelectedOption
+      ? String(resolvedSelectedOption[labelField])
+      : ""
+  );
 
   return (
     <div className="flex w-full flex-col gap-1.5" ref={containerRef}>
@@ -168,45 +183,26 @@ export function RelationshipField({ field, onChange }) {
       <input type="hidden" name={name} value={selectedId || ""} required={required} readOnly />
 
       <div className="relative">
-        <button
-          type="button"
-          onClick={handleOpen}
-          className="flex w-full items-center justify-between rounded-sm border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none"
-        >
-          <span className={selectedLabel ? "text-gray-900" : "text-gray-400"}>
-            {triggerText}
-          </span>
-          <div className="flex items-center gap-1">
-            {selectedId && (
-              <span
-                role="button"
-                tabIndex={0}
-                onClick={handleClear}
-                className="rounded-full p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-              >
-                <X size={14} />
-              </span>
-            )}
-            <ChevronDown size={16} className="text-gray-400" />
-          </div>
-        </button>
+        <input
+          ref={inputRef}
+          type="text"
+          value={open ? search : displayLabel}
+          onFocus={handleOpen}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setOpen(true);
+            setHighlightedIndex(0);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={resolvedPlaceholder}
+          readOnly={readOnly}
+          autoComplete="off"
+          className={`w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none placeholder:text-gray-400 ${readOnly ? "cursor-not-allowed bg-gray-100 opacity-60" : ""}`}
+        />
 
         {open && (
-          <div className="absolute z-20 mt-1 w-full rounded-sm border border-gray-200 bg-white shadow-lg">
-            {searchable && (
-              <div className="flex items-center gap-2 border-b border-gray-100 px-3 py-2">
-                <Search size={14} className="text-gray-400" />
-                <input
-                  ref={inputRef}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search..."
-                  className="w-full text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                />
-              </div>
-            )}
-
-            <div className="max-h-56 overflow-y-auto py-1">
+          <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-md border border-gray-200 bg-white shadow-lg">
+            <div className="max-h-56 overflow-y-auto p-1">
               {loading ? (
                 <div className="flex items-center justify-center gap-2 px-3 py-4 text-sm text-gray-400">
                   <Loader2 size={14} className="animate-spin" />
@@ -215,14 +211,14 @@ export function RelationshipField({ field, onChange }) {
               ) : displayOptions.length === 0 ? (
                 <div className="px-3 py-4 text-center text-sm text-gray-400">No results</div>
               ) : (
-                displayOptions.map((option) => (
+                displayOptions.map((option, index) => (
                   <button
                     key={option[valueField]}
                     type="button"
                     onClick={() => handleSelect(option)}
-                    className={`block w-full truncate px-3 py-2 text-left text-sm hover:bg-gray-50 ${
-                      String(option[valueField]) === String(selectedId)
-                        ? "bg-blue-50 text-blue-700"
+                    className={`block w-full truncate rounded px-3 py-2 text-left text-sm hover:bg-gray-100 ${
+                      index === highlightedIndex || String(option[valueField]) === String(selectedId)
+                        ? "bg-gray-100 font-medium"
                         : "text-gray-900"
                     }`}
                   >

@@ -25,7 +25,15 @@ export function SearchableSelect({
   const [isOpen, setIsOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newOption, setNewOption] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const containerRef = useRef(null);
+  const touchedRef = useRef(false);
+
+  useEffect(() => {
+    if (touchedRef.current) return;
+    setValue(initialValue);
+    setQuery(initialValue);
+  }, [initialValue]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -40,13 +48,23 @@ export function SearchableSelect({
   }, []);
 
   const normalizedOptions = options.map(normalizeOption);
-  const filteredOptions = normalizedOptions.filter((option) =>
-    option.label.toLowerCase().includes(query.trim().toLowerCase()),
-  );
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredOptions = normalizedOptions
+    .filter((option) => option.label.toLowerCase().includes(normalizedQuery))
+    .sort((a, b) => {
+      if (!normalizedQuery) return 0;
+      const aLabel = a.label.toLowerCase();
+      const bLabel = b.label.toLowerCase();
+      const aScore = aLabel === normalizedQuery ? 0 : aLabel.startsWith(normalizedQuery) ? 1 : 2;
+      const bScore = bLabel === normalizedQuery ? 0 : bLabel.startsWith(normalizedQuery) ? 1 : 2;
+      return aScore - bScore;
+    });
 
   const choose = (optionValue, optionLabel = optionValue) => {
+    touchedRef.current = true;
     setValue(optionValue);
     setQuery(optionLabel);
+    setHighlightedIndex(0);
     onChange?.(optionValue);
     setIsOpen(false);
     setAdding(false);
@@ -64,6 +82,29 @@ export function SearchableSelect({
   const openPicker = () => {
     if (disabled || readOnly) return;
     setIsOpen(true);
+    setHighlightedIndex(0);
+  };
+
+  const handleKeyDown = (event) => {
+    if (!isOpen || filteredOptions.length === 0) {
+      if (event.key === "Enter" && !isOpen) openPicker();
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.min(current + 1, filteredOptions.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedIndex((current) => Math.max(current - 1, 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      const option = filteredOptions[highlightedIndex] ?? filteredOptions[0];
+      choose(option.value, option.label);
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -85,9 +126,12 @@ export function SearchableSelect({
           openPicker();
         }}
         onChange={(event) => {
+          touchedRef.current = true;
           setQuery(event.target.value);
           setIsOpen(true);
+          setHighlightedIndex(0);
         }}
+        onKeyDown={handleKeyDown}
         className="w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm transition-colors focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
         placeholder={label}
       />
@@ -102,7 +146,9 @@ export function SearchableSelect({
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => choose(option.value, option.label)}
                 className={`block w-full rounded px-3 py-2 text-left text-sm hover:bg-gray-100 ${
-                  option.value === value ? "bg-gray-100 font-medium" : ""
+                  option.value === value || filteredOptions[highlightedIndex]?.value === option.value
+                    ? "bg-gray-100 font-medium"
+                    : ""
                 }`}
               >
                 {option.label}
@@ -163,4 +209,3 @@ export function SearchableSelect({
     </div>
   );
 }
-
