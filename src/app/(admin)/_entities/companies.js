@@ -7,6 +7,9 @@ export const companies = defineEntity({
   label: "Companies",
   icon: Building2,
   titleField: "name",
+  addLabel: "Add Company",
+  rowHref: (company) => `/companies/${company.id}`,
+  editHref: (company) => `/companies/${company.id}/edit`,
   roles: ["admin"],
   fields: [
     { name: "name", type: "text", label: "Name", required: true },

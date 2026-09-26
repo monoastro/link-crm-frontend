@@ -6,6 +6,7 @@ export const users = defineEntity({
   label: "Users",
   icon: Users,
   titleField: "name",
+  addLabel: "Add User",
   roles: ["admin"],
   fields: [
     { name: "username", type: "text", label: "Username", required: true },

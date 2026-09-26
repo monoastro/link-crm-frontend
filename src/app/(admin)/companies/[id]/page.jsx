@@ -1,42 +1,18 @@
-// src/app/companies/[id]/page.js
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
-import {
-  AdminLayout,
-  removeEmptyFields,
-  useApi,
-  useGet,
-  useToast,
-  RelationshipField,
-  Form,
-} from "@/packages/admin";
-import { Input, Select } from "@/packages/admin";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { Loader2, Pencil } from "lucide-react";
+import { AdminLayout, Form, useGet } from "@/packages/admin";
 import { VacanciesField } from "@/components/templates/VacanciesField.jsx";
 import { countries } from "@/app/(admin)/_entities/countries";
 
-const COUNTRY_OPTIONS = countries.map(({ label }) => ({ value: label, label }));
-
-export default function CompanyEditPage() {
+export default function CompanyDetailsPage() {
   const { id } = useParams();
-  const router = useRouter();
-  const toast = useToast();
-  const { post, patch } = useApi();
+  const { data, isLoading } = useGet(`/companies/${id}`);
+  const company = data?.item;
 
-  const isNew = id === "new";
-  const apiPath = "/companies";
-  const { data, isLoading: loading } = useGet(isNew ? null : `${apiPath}/${id}`);
-
-  // Vacancies are a nested array, not a scalar field, so they're tracked as
-  // controlled state separate from the rest of the Form's fields. Seeded
-  // from the loaded company once data arrives; stays null until then so we
-  // can tell "not yet loaded" apart from "user cleared everything".
-  const [vacancies, setVacancies] = useState(null);
-  const currentVacancies = vacancies ?? data?.item?.vacancies ?? [];
-
-  if (!isNew && loading) {
+  if (isLoading || !company) {
     return (
       <AdminLayout title="Company">
         <Loader2 size={18} className="animate-spin text-gray-400" />
@@ -45,83 +21,51 @@ export default function CompanyEditPage() {
     );
   }
 
-  async function handleSubmit(values) {
-    const clean = removeEmptyFields({
-      name: values.name,
-      country: values.country,
-      parentCompanyId: values.parentCompanyId,
-    });
-
-    // Strip client-only concerns before sending: existing vacancies keep
-    // their `code` so the backend knows to update them in place; new ones
-    // are sent without `code` so the server generates one on insert.
-    const payloadVacancies = currentVacancies.map((v) => {
-      const { code, position, openings, status } = v;
-      return code ? { code, position, openings, status } : { position, openings, status };
-    });
-
-    const payload = {
-      ...clean,
-      vacancies: payloadVacancies,
-    };
-
-    const url = isNew ? apiPath : `${apiPath}/${id}`;
-    const res = isNew ? await post(url, payload) : await patch(url, payload);
-
-    if (res?.ok) {
-      toast.success(`Company ${isNew ? "created" : "updated"} successfully`);
-      router.replace("/companies");
-    }
-    return res;
-  }
+  const countryName = countries.find(({ value }) => value === company.country)?.label ?? company.country;
 
   return (
-    <AdminLayout title={`${isNew ? "New" : "Edit"} Company`} formId="company-form">
-      <Form
-        defaults={data?.item ?? {}}
-        id="company-form"
-        onSubmit={handleSubmit}
-        className="flex flex-col gap-6"
-      >
-        <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-          <div className="flex gap-4">
-            <Input name="name" placeholder="Company name" required />
-            <Select name="country" placeholder="Country" required>
-              {COUNTRY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
+    <AdminLayout title={company.name ?? "Company"}>
+      <div className="flex flex-col gap-6">
+        <div className="flex justify-end">
+          <Link
+            href={`/companies/${id}/edit`}
+            className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+          >
+            <Pencil size={15} />
+            Edit Company
+          </Link>
+        </div>
+
+        <section className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
+          <h2 className="text-sm font-semibold text-gray-900">Company Details</h2>
+          <div className="flex flex-wrap gap-4">
+            <ReadField label="Company name" value={company.name} />
+            <ReadField label="Country" value={countryName} />
+            <ReadField label="Parent company" value={company.parentCompany?.name} />
           </div>
+        </section>
 
-          <RelationshipField
-            field={{
-              name: "parentCompanyId",
-              label: "Parent company",
-              relationTo: "companies",
-              labelField: "name",
-              valueField: "id",
-              searchable: true,
-              // avoid letting a company be selected as its own parent when
-              // editing an existing one
-              excludeIds: isNew ? [] : [id],
-            }}
-          />
-        </div>
-
-        {/* Vacancies — nested list with Open/History tabs, add/edit/remove
-            handled entirely client-side; the full set is submitted together
-            with the rest of the company payload on save. */}
-        <div className="rounded-sm border border-gray-200 bg-white p-6">
-          <h3 className="mb-4 text-sm font-semibold text-gray-700">Vacancies</h3>
-          <VacanciesField
-            name="vacancies"
-            value={currentVacancies}
-            onChange={setVacancies}
-          />
-        </div>
-      </Form>
+        <section className="rounded-sm border border-gray-200 bg-white p-6">
+          <h2 className="mb-4 text-sm font-semibold text-gray-900">Vacancies</h2>
+          <Form defaults={company} onSubmit={() => {}}>
+            <VacanciesField
+              name="vacancies"
+              value={company.vacancies ?? []}
+              onChange={() => {}}
+              readOnly
+            />
+          </Form>
+        </section>
+      </div>
     </AdminLayout>
+  );
+}
+
+function ReadField({ label, value }) {
+  return (
+    <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
+      <span className="truncate text-sm text-gray-800">{value || "—"}</span>
+    </div>
   );
 }

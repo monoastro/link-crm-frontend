@@ -6,6 +6,7 @@ export const candidates = defineEntity({
   label: "Candidates",
   icon: Contact,
   titleField: "name",
+  addLabel: "Add Candidate",
   rowHref: (candidate) => `/candidates/${candidate.id}`,
   editHref: (candidate) => `/candidates/${candidate.id}/edit`,
   roles: ["admin", "frontdesk", "flight", "visa", "medical"],
