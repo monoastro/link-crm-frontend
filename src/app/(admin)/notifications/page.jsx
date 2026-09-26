@@ -88,7 +88,7 @@ export default function NotificationsPage() {
                   <button
                     key={n.id}
                     type="button"
-                    onClick={() => router.push(`/notifications/${n.id}`)}
+                    onClick={() => router.push(n.data?.candidateId ? `/candidates/${n.data.candidateId}` : "/notifications")}
                     className="flex w-full items-center gap-3 px-5 py-4 text-left transition hover:bg-gray-50"
                   >
                     <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${style.bg}`}>

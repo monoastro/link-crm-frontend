@@ -61,8 +61,9 @@ export default function NotificationToaster() {
   if (toasts.length === 0) return null;
 
   function openToast(id) {
+    const notification = toasts.find((toast) => toast.id === id);
     dismissToast(id);
-    router.push(`/notifications/${id}`);
+    router.push(notification?.data?.candidateId ? `/candidates/${notification.data.candidateId}` : "/notifications");
   }
 
   return (

@@ -2,6 +2,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 import { Badge } from "../atoms/Badge.jsx";
 import { EditButton, ViewButton } from "../atoms/Buttons.jsx";
@@ -36,10 +37,12 @@ export default function DataTable({
   data,
   fields,
   editHref,
+  rowHref,
   actions,
   onPageChange, // optional: (nextPage: number) => void
   selectable = true, // set false to hide the checkbox column entirely
 }) {
+  const router = useRouter();
   const { name, mutate } = useEntity();
   const { del } = useApi();
   const { items, total, page, totalPages, hasNextPage, hasPrevPage } = normalizePayloadResponse(data);
@@ -268,10 +271,19 @@ export default function DataTable({
                 return (
                   <tr
                     key={item.id ?? index}
-                    className={`transition-colors hover:bg-gray-50 ${isSelected ? "bg-gray-50" : ""}`}
+                    onClick={() => rowHref && router.push(rowHref(item))}
+                    onKeyDown={(event) => {
+                      if (rowHref && (event.key === "Enter" || event.key === " ")) {
+                        event.preventDefault();
+                        router.push(rowHref(item));
+                      }
+                    }}
+                    tabIndex={rowHref ? 0 : undefined}
+                    role={rowHref ? "link" : undefined}
+                    className={`transition-colors hover:bg-gray-50 ${rowHref ? "cursor-pointer" : ""} ${isSelected ? "bg-gray-50" : ""}`}
                   >
                     {selectable && (
-                      <td className=" align-middle">
+                      <td className=" align-middle" onClick={(event) => event.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -287,7 +299,7 @@ export default function DataTable({
                       </td>
                     ))}
                     {renderActions && (
-                      <td className=" align-middle">
+                      <td className=" align-middle" onClick={(event) => event.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">{renderActions(item)}</div>
                       </td>
                     )}

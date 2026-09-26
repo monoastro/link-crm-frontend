@@ -60,7 +60,7 @@ export default function VisaApprovedTable({ data, onPageChange }) {
                 return (
                   <tr
                     key={item.id}
-                    onClick={() => router.push(`/visaApproved/${item.id}`)}
+                    onClick={() => router.push(`/candidates/${item.id}`)}
                     className="cursor-pointer transition-colors hover:bg-gray-50"
                   >
                     <td className="px-3 py-3 align-middle">
