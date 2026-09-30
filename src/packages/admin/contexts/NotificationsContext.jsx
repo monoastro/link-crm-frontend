@@ -4,11 +4,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { fetchNotifications } from "../lib/notifications";
 
-const POLL_MS = 5000;
+const API = process.env.NEXT_PUBLIC_API;
 const STORAGE_KEY = "notif_last_id";
 const MAX_TOASTS = 5;
 const TOAST_TTL_MS = 8000;
 const SOUND_SRC = "/sounds/notification.mp3";
+const FALLBACK_POLL_MS = 60000; // safety net only; SSE does the real work
 
 const NotificationsContext = createContext(null);
 
@@ -21,15 +22,20 @@ export function NotificationsProvider({ children }) {
   const hasLoadedCursor = useRef(false);
   const timersRef = useRef(new Map());
   const audioRef = useRef(null);
-  const unlockedRef = useRef(false); // whether a user gesture has happened yet
-  const isFirstPollRef = useRef(true); // don't play sound for the initial backlog
+  const unlockedRef = useRef(false);
+  const isFirstPollRef = useRef(true);
+  const seenIdsRef = useRef(new Set()); // dedupe between poll and stream
+  const soundEnabledRef = useRef(true);
 
-  // Prepare the audio element once, client-side only.
+  // Keep the latest value in a ref so toggling sound doesn't restart the stream.
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
   useEffect(() => {
     audioRef.current = new Audio(SOUND_SRC);
     audioRef.current.volume = 0.5;
 
-    // Most browsers allow audio once the user has clicked/tapped/typed anywhere.
     const unlock = () => {
       unlockedRef.current = true;
       window.removeEventListener("pointerdown", unlock);
@@ -45,13 +51,10 @@ export function NotificationsProvider({ children }) {
   }, []);
 
   const playSound = useCallback(() => {
-    if (!soundEnabled || !unlockedRef.current || !audioRef.current) return;
+    if (!soundEnabledRef.current || !unlockedRef.current || !audioRef.current) return;
     audioRef.current.currentTime = 0;
-    audioRef.current.play().catch(() => {
-      // Autoplay was blocked despite the gesture check, or the file 404s.
-      // Non-fatal — just skip the sound this time.
-    });
-  }, [soundEnabled]);
+    audioRef.current.play().catch(() => {});
+  }, []);
 
   const dismissToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -74,7 +77,29 @@ export function NotificationsProvider({ children }) {
     [dismissToast]
   );
 
-  const poll = useCallback(async () => {
+  const advanceCursor = useCallback((id) => {
+    if (id == null) return;
+    lastIdRef.current = String(id);
+    localStorage.setItem(STORAGE_KEY, String(id));
+  }, []);
+
+  // Shared by both the poll (catch-up) and the stream (live).
+  const handleIncoming = useCallback(
+    (items, { silent = false } = {}) => {
+      const fresh = items.filter((n) => !seenIdsRef.current.has(String(n.id)));
+      if (fresh.length === 0) return;
+
+      for (const n of fresh) seenIdsRef.current.add(String(n.id));
+
+      setUnseen((prev) => [...prev, ...fresh]);
+      pushToasts(fresh);
+      if (!silent) playSound();
+    },
+    [pushToasts, playSound]
+  );
+
+  // Catch-up: fetch anything after our cursor.
+  const catchUp = useCallback(async () => {
     if (!hasLoadedCursor.current) {
       lastIdRef.current = localStorage.getItem(STORAGE_KEY);
       hasLoadedCursor.current = true;
@@ -83,40 +108,58 @@ export function NotificationsProvider({ children }) {
     try {
       const { items, lastId } = await fetchNotifications(lastIdRef.current);
 
-      if (items.length > 0) {
-        setUnseen((prev) => [...prev, ...items]);
-        pushToasts(items);
-
-        // Skip the sound on the very first poll of a session — that batch
-        // is backlog the user hasn't seen yet, not something "arriving" now.
-        if (!isFirstPollRef.current) {
-          playSound();
-        }
-      }
-      if (lastId != null) {
-        lastIdRef.current = String(lastId);
-        localStorage.setItem(STORAGE_KEY, String(lastId));
-      }
+      // First load is backlog, so no sound.
+      handleIncoming(items, { silent: isFirstPollRef.current });
+      advanceCursor(lastId);
     } catch {
-      // network hiccup — try again next tick
+      // network hiccup, next trigger will retry
     } finally {
       isFirstPollRef.current = false;
     }
-  }, [pushToasts, playSound]);
+  }, [handleIncoming, advanceCursor]);
 
   useEffect(() => {
-    poll();
-    const id = setInterval(poll, POLL_MS);
-    const onFocus = () => poll();
+    let source;
+    let hasOpenedBefore = false;
+
+    // Load backlog first, then open the stream so nothing falls in the gap.
+    catchUp().then(() => {
+      source = new EventSource(`${API}/notifications/stream`, { withCredentials: true });
+
+      source.onopen = () => {
+        // On a reconnect, catch up on anything missed while disconnected.
+        if (hasOpenedBefore) catchUp();
+        hasOpenedBefore = true;
+      };
+      source.onerror = () => console.log("SSE error, readyState:", source.readyState);
+
+      source.addEventListener("notification", (e) => {
+        console.log("notification event", e.data);
+        try {
+          const n = JSON.parse(e.data);
+          handleIncoming([n]);
+          advanceCursor(n.id);
+        } catch {
+          // malformed event, ignore
+        }
+      });
+
+      // EventSource reconnects on its own after errors, so nothing to do here.
+      source.onerror = () => {};
+    });
+
+    const fallback = setInterval(catchUp, FALLBACK_POLL_MS);
+    const onFocus = () => catchUp();
     window.addEventListener("focus", onFocus);
 
     return () => {
-      clearInterval(id);
+      source?.close();
+      clearInterval(fallback);
       window.removeEventListener("focus", onFocus);
       for (const timer of timersRef.current.values()) clearTimeout(timer);
       timersRef.current.clear();
     };
-  }, [poll]);
+  }, [catchUp, handleIncoming, advanceCursor]);
 
   const clearUnseen = useCallback(() => setUnseen([]), []);
 
