@@ -43,10 +43,10 @@ const SECTION_OWNERS = {
 const SECTION_FIELDS = {
   application: [
     "appliedCountry", "appliedCategory", "month",
-    "companyId", "reference", "remarks",
+    "companyId", "reference", "remarks", "isSelected",
   ],
   visa: [
-    "visaNumber", "visaStatus", "visaProfession",
+    "visaNumber", "visaStatus", "visaProfession", "visaRemarks",
     "visaReceivedDate", "visaExpiryDate", "qvcStatus", "mofaStatus",
   ],
   flight: ["flightStatus", "deploymentOn"],
@@ -69,6 +69,43 @@ const MOFA_STATUS_OPTIONS = ["Pending", "Attested", "Rejected"];
 const FLIGHT_STATUS_OPTIONS = ["Not flown", "Flown"];
 const MEDICAL_STATUS_OPTIONS = ["Fit", "Unfit", "Pending"];
 const PCC_STATUS_OPTIONS = ["Pending", "Received"];
+
+function SelectedStatusField({ defaultValue, readOnly }) {
+  const [selectedValue, setSelectedValue] = useState(Boolean(defaultValue));
+
+  return (
+    <fieldset className="flex min-w-[260px] flex-1 flex-col gap-1.5">
+      <legend className="text-sm font-medium text-gray-700">Selected</legend>
+      <input type="hidden" name="isSelected" value={String(selectedValue)} />
+      <div className="flex gap-3 pt-1">
+        {[
+          { label: "Yes", value: true },
+          { label: "No", value: false },
+        ].map(({ label, value }) => (
+          <label
+            key={label}
+            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2 text-sm capitalize transition-colors ${
+              selectedValue === value
+                ? "border-black bg-gray-100 text-black"
+                : "border-gray-200 text-gray-700"
+            } ${readOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-50"}`}
+          >
+            <input
+              type="radio"
+              name="isSelectedRadio"
+              value={label}
+              checked={selectedValue === value}
+              onChange={() => setSelectedValue(value)}
+              disabled={readOnly}
+              className="h-4 w-4 accent-black"
+            />
+            {label}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
 
 function PassportStatusField({ defaultValue, readOnly }) {
   const [selectedValue, setSelectedValue] = useState(String(defaultValue ?? "").toLowerCase());
@@ -314,6 +351,10 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 }
               />
               <Input name="reference" placeholder="Reference" readOnly={ro("application")} />
+              <SelectedStatusField
+                defaultValue={data?.item?.isSelected}
+                readOnly={ro("application")}
+              />
             </div>
 
             <Textarea name="remarks" placeholder="Remarks" readOnly={ro("application")} />
@@ -358,6 +399,7 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 disabled={ro("visa")}
               />
             </div>
+            <Textarea name="visaRemarks" placeholder="Visa remarks" readOnly={ro("visa")} />
           </div>
         )}
 

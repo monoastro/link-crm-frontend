@@ -72,13 +72,17 @@ export default function CandidateDetailsPage() {
         <ReadSection title="Application Details">
           <ReadRow>
             <ReadField label="Applied country" value={candidate.appliedCountry} />
-            <ReadField label="Applied category" value={candidate.appliedCategory} />
+            <ReadField
+              label="Applied category"
+              value={candidate.vacancy?.position ?? candidate.appliedCategoryName}
+            />
             <ReadField label="Month" value={candidate.month} />
           </ReadRow>
           <ReadRow>
-            <ReadField label="Company" value={candidate.company?.name ?? candidate.companyId} />
+            <ReadField label="Company" value={candidate.company?.name ?? candidate.companyName} />
             <ReadField label="Reference" value={candidate.reference} />
             <ReadField label="Offer status" value={candidate.offerStatus} />
+            <ReadField label="Selected" value={candidate.isSelected ? "Yes" : "No"} />
           </ReadRow>
           <ReadRow>
             <ReadField
@@ -108,6 +112,7 @@ export default function CandidateDetailsPage() {
             <ReadField label="MOL status" value={candidate.molStatus} />
             <ReadField label="Tashreeh status" value={candidate.tashreehStatus} />
           </ReadRow>
+          <ReadField label="Visa remarks" value={candidate.visaRemarks} multiline />
         </ReadSection>
 
         <ReadSection title="Medical and Deployment Details">

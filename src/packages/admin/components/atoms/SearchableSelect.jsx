@@ -31,7 +31,8 @@ export function SearchableSelect({
   const normalizedOptions = options.map(normalizeOption);
   const labelFor = (val) => {
     if (!val) return emptyLabel ?? "";
-    return normalizedOptions.find((o) => o.value === val)?.label ?? val;
+    const found = normalizedOptions.find((o) => o.value === val)?.label;
+    return found ?? val;
   };
 
   const [value, setValue] = useState(initialValue);
@@ -50,7 +51,7 @@ export function SearchableSelect({
     setValue(initialValue);
     setQuery(labelFor(initialValue));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialValue]);
+  }, [initialValue, options]);
 
   useEffect(() => {
     if (!isControlled) return;

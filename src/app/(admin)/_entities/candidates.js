@@ -14,9 +14,11 @@ export const candidates = defineEntity({
     { name: "name", type: "text", label: "Name" },
     { name: "email", type: "email", label: "Email", invisible: true },
     { name: "phone", type: "tel", label: "Phone", invisible: true },
-    { name: "passportNumber", type: "text", label: "Passport" },
+    { name: "passportNumber", type: "text", label: "Passport", invisible: true },
     { name: "appliedCountry", type: "text", label: "Applied Country" },
-    { name: "appliedCategory", type: "text", label: "Applied Category" },
+    { name: "appliedCategoryName", type: "text", label: "Applied Category" },
+    { name: "visaStatus:status", type: "text", label: "Visa Status" },
+    { name: "visaRemarks", type: "text", label: "Visa Remarks" },
     { name: "address", type: "text", label: "Address", invisible: true },
     { name: "dob", type: "date", label: "Date of Birth", invisible: true },
     { name: "placeOfBirth", type: "text", label: "Place of Birth", invisible: true },
@@ -29,6 +31,14 @@ export const candidates = defineEntity({
         { value: "Waiting", label: "Waiting" },
         { value: "Received", label: "Received" },
         { value: "Rejected", label: "Rejected" },
+      ],
+    },
+    {
+      field: "isSelected",
+      label: "Selected",
+      options: [
+        { value: true, label: "Yes" },
+        { value: false, label: "No" },
       ],
     },
     {

@@ -180,9 +180,9 @@ export default function DataTable({
 
       default:
         return (
-          <span className="text-sm text-gray-600" title={value}>
+          <div className="text-sm text-gray-600 max-w-40 truncate" title={value}>
             {value}
-          </span>
+          </div>
         );
     }
   };
