@@ -113,23 +113,27 @@ export default function CandidateExportPage() {
     filters.visaStatus !== defaults.visaStatus ||
     filters.beforeDate !== defaults.beforeDate;
 
+  const dateInputClass =
+    "min-w-0 w-full flex-1 border-0 bg-transparent py-1 text-base text-gray-900 focus:outline-none focus:ring-0 sm:text-sm";
+
   return (
     <div className="flex h-full flex-col">
-      <header className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-gray-50/80 px-6 py-2 pb-4 min-h-22 backdrop-blur">
-        <h1 className="truncate text-xl font-semibold text-gray-900">Export Candidates</h1>
+      {/* Header stacks on mobile: title on top, bucket bar below */}
+      <header className="sticky top-0 z-10 flex flex-col gap-2 border-b border-gray-200 bg-gray-50/80 px-3 py-3 backdrop-blur sm:min-h-22 sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-2 sm:pb-4">
+        <h1 className="truncate text-lg font-semibold text-gray-900 sm:text-xl">Export Candidates</h1>
 
-        <ExportBucketBar
-          count={bucketCount}
-          onClear={clearBucket}
-          onOpenExport={() => setShowExportModal(true)}
-        />
+        <div className="w-full sm:w-auto">
+          <ExportBucketBar
+            count={bucketCount}
+            onClear={clearBucket}
+            onOpenExport={() => setShowExportModal(true)}
+          />
+        </div>
       </header>
 
-      <main className="flex-1 overflow-auto p-6">
-        <div className="flex flex-col gap-5 pb-24">
-          {/* Filter panel — search on its own row, everything else in a
-              consistent grid so fields line up instead of wrapping loosely. */}
-          <div className="flex flex-col gap-4 rounded-md border border-gray-200 bg-white p-4">
+      <main className="min-w-0 flex-1 overflow-auto p-3 sm:p-6">
+        <div className="flex flex-col gap-4 pb-24 sm:gap-5">
+          <div className="flex flex-col gap-4 rounded-md border border-gray-200 bg-white p-3 sm:p-4">
             <div className="relative">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Search size={16} />
@@ -139,11 +143,12 @@ export default function CandidateExportPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or passport number..."
-                className="w-full rounded-md border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-sm text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-base text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:py-1.5 sm:text-sm"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {/* 1 column on mobile, 3 on sm, 5 on lg */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               <SearchableSelect
                 name="visaStatus"
                 label="Visa Status"
@@ -179,28 +184,35 @@ export default function CandidateExportPage() {
                 }
               />
 
-              {/* Date range paired as one visual unit — a bordered group
-                  containing both inputs, rather than two separate floating
-                  fields that read as unrelated. */}
-              <div className="col-span-2 flex flex-col gap-1.5">
+              {/* Date range: inputs stack on mobile, sit side by side from sm */}
+              <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label className="text-sm font-medium text-gray-700">Date Range</label>
-                <div className="flex items-center gap-2 rounded-sm border border-gray-200 bg-white px-2 py-1 shadow-sm focus-within:border-black focus-within:ring-2 focus-within:ring-black/10">
-                  <Calendar size={14} className="shrink-0 text-gray-400" />
-                  <input
-                    type="date"
-                    value={filters.afterDate || ""}
-                    max={filters.beforeDate || undefined}
-                    onChange={(e) => handleFilterChange("afterDate", e.target.value)}
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-gray-900 focus:outline-none focus:ring-0"
-                  />
-                  <span className="shrink-0 text-sm text-gray-400">to</span>
-                  <input
-                    type="date"
-                    value={filters.beforeDate || ""}
-                    min={filters.afterDate || undefined}
-                    onChange={(e) => handleFilterChange("beforeDate", e.target.value)}
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-sm text-gray-900 focus:outline-none focus:ring-0"
-                  />
+                <div className="flex flex-col gap-1 rounded-sm border border-gray-200 bg-white px-2 py-1 shadow-sm focus-within:border-black focus-within:ring-2 focus-within:ring-black/10 sm:flex-row sm:items-center sm:gap-2">
+                  <div className="flex items-center gap-2 sm:flex-1">
+                    <Calendar size={14} className="shrink-0 text-gray-400" />
+                    <span className="w-9 shrink-0 text-sm text-gray-400 sm:hidden">From</span>
+                    <input
+                      type="date"
+                      value={filters.afterDate || ""}
+                      max={filters.beforeDate || undefined}
+                      onChange={(e) => handleFilterChange("afterDate", e.target.value)}
+                      className={dateInputClass}
+                    />
+                  </div>
+
+                  <span className="hidden shrink-0 text-sm text-gray-400 sm:inline">to</span>
+
+                  <div className="flex items-center gap-2 border-t border-gray-100 pt-1 sm:flex-1 sm:border-0 sm:pt-0">
+                    <Calendar size={14} className="shrink-0 text-gray-400 sm:hidden" />
+                    <span className="w-9 shrink-0 text-sm text-gray-400 sm:hidden">To</span>
+                    <input
+                      type="date"
+                      value={filters.beforeDate || ""}
+                      min={filters.afterDate || undefined}
+                      onChange={(e) => handleFilterChange("beforeDate", e.target.value)}
+                      className={dateInputClass}
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -209,7 +221,7 @@ export default function CandidateExportPage() {
               <div className="flex justify-end border-t border-gray-100 pt-3">
                 <button
                   onClick={() => setFilters(defaultFilters())}
-                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
+                  className="flex items-center gap-1 py-1 text-sm text-gray-500 hover:text-gray-900"
                 >
                   <X size={14} />
                   Clear filters
