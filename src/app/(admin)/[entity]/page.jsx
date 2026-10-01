@@ -23,6 +23,7 @@ export default function EntityListPage() {
       route={`/${config.slug}/`}
       tablefields={tableFields(config)}
       filters={config.filters}
+      bulkActions={config.bulkActions}
     />
   );
 }

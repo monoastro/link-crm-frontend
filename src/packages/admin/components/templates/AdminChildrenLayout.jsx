@@ -14,6 +14,7 @@ export function AdminChildrenLayout({
   name,
   tablefields,
   actions,
+  bulkActions,
 }) {
   // 1. Get the filter config from the entity definition
   const entities = getEntities()
@@ -180,6 +181,7 @@ export function AdminChildrenLayout({
           editHref={entityConfig?.editHref ?? `/${name}/`}
           rowHref={entityConfig?.rowHref}
           actions={actions}
+          bulkActions={bulkActions}
           onPageChange={(nextPage) => setPage(nextPage)}
         />
       </div>

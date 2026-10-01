@@ -39,6 +39,7 @@ export default function DataTable({
   editHref,
   rowHref,
   actions,
+  bulkActions,
   onPageChange, // optional: (nextPage: number) => void
   selectable = true, // set false to hide the checkbox column entirely
 }) {
@@ -58,6 +59,7 @@ export default function DataTable({
   }, [data]);
 
   const selectedCount = selectedIds.size;
+  const selectedItems = items.filter((item) => selectedIds.has(item.id));
   const allOnPageSelected = items.length > 0 && selectedCount === items.length;
   const someOnPageSelected = selectedCount > 0 && !allOnPageSelected;
 
@@ -212,6 +214,10 @@ export default function DataTable({
             {selectedCount === 1 ? "record" : "records"} selected
           </span>
           <div className="flex items-center gap-3">
+            {bulkActions?.({
+              selectedItems,
+              clearSelection: () => setSelectedIds(new Set()),
+            })}
             <button
               type="button"
               onClick={() => setSelectedIds(new Set())}

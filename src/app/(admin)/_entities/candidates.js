@@ -1,5 +1,6 @@
 import { defineEntity } from "@/packages/admin/index.jsx";
 import { Contact } from "lucide-react";
+import CandidateCvExportButton from "@/components/organisms/CandidateCvExportButton.jsx";
 
 export const candidates = defineEntity({
   slug: "candidates",
@@ -9,6 +10,9 @@ export const candidates = defineEntity({
   addLabel: "Add Candidate",
   rowHref: (candidate) => `/candidates/${candidate.id}`,
   editHref: (candidate) => `/candidates/${candidate.id}/edit`,
+  bulkActions: ({ selectedItems }) => (
+    <CandidateCvExportButton candidates={selectedItems} />
+  ),
   roles: ["admin", "frontdesk", "flight", "visa", "medical"],
   fields: [
     { name: "name", type: "text", label: "Name" },
