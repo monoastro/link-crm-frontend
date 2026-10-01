@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Loader2, Pencil } from "lucide-react";
+import { AlertTriangle, Loader2, Pencil } from "lucide-react";
 import {
   AdminLayout,
   Form,
@@ -14,6 +14,9 @@ import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
 
 const CARD = "rounded-sm border border-gray-200 bg-white p-3 sm:p-6";
+
+// Visas expiring within this many days (or already expired) get the red treatment
+const EXPIRY_WARN_DAYS = 7;
 
 export default function CandidateDetailsPage() {
   const { id } = useParams();
@@ -30,13 +33,37 @@ export default function CandidateDetailsPage() {
     );
   }
 
+  const expiry = expiryInfo(candidate.visaExpiryDate);
+
   return (
     <AdminLayout title={candidate.name ?? "Candidate"}>
       <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
-        <div className="flex sm:justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          {/* Visa expiry alert, sits on the same line as the Edit button */}
+          {expiry?.urgent ? (
+            <div
+              role="alert"
+              className="flex min-w-0 items-center gap-2 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+            >
+              <AlertTriangle size={15} className="shrink-0" />
+              <span className="min-w-0 truncate">
+                <span className="font-medium">
+                  {expiry.days < 0
+                    ? "Visa expired"
+                    : expiry.days === 0
+                    ? "Visa expires today"
+                    : "Visa expiring soon"}
+                </span>
+                <span className="text-red-600"> · {expiry.label}</span>
+              </span>
+            </div>
+          ) : (
+            <span />
+          )}
+
           <Link
             href={`/candidates/${id}/edit`}
-            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto sm:py-2"
+            className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto sm:py-2"
           >
             <Pencil size={15} />
             Edit Candidate
@@ -97,7 +124,7 @@ export default function CandidateDetailsPage() {
           <ReadField label="Remarks" value={candidate.remarks} multiline />
         </ReadSection>
 
-        <ReadSection title="Visa Details">
+        <ReadSection title="Visa Details" urgent={expiry?.urgent}>
           <ReadRow>
             <ReadField label="Visa number" value={candidate.visaNumber} />
             <ReadField label="Visa status" value={candidate.visaStatus} />
@@ -105,7 +132,12 @@ export default function CandidateDetailsPage() {
           </ReadRow>
           <ReadRow>
             <ReadField label="Visa received date" value={formatDate(candidate.visaReceivedDate)} />
-            <ReadField label="Visa expiry date" value={formatDate(candidate.visaExpiryDate)} />
+            <ReadField
+              label="Visa expiry date"
+              value={formatDate(candidate.visaExpiryDate)}
+              urgent={expiry?.urgent}
+              hint={expiry?.label}
+            />
           </ReadRow>
           <ReadRow>
             <ReadField label="QVC status" value={candidate.qvcStatus} />
@@ -140,16 +172,20 @@ export default function CandidateDetailsPage() {
   );
 }
 
-function ReadSection({ title, children }) {
+function ReadSection({ title, urgent = false, children }) {
   return (
-    <section className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
+    <section
+      className={`flex min-w-0 flex-col gap-4 rounded-sm border p-3 sm:p-6 ${
+        urgent ? "border-red-200 bg-red-50/40" : "border-gray-200 bg-white"
+      }`}
+    >
       <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
       {children}
     </section>
   );
 }
 
-// 2 columns on mobile, wrapping flex row from sm (same as before)
+// 2 columns on mobile, wrapping flex row from sm
 function ReadRow({ children }) {
   return (
     <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:flex sm:flex-wrap sm:gap-4">
@@ -158,7 +194,7 @@ function ReadRow({ children }) {
   );
 }
 
-function ReadField({ label, value, multiline = false }) {
+function ReadField({ label, value, multiline = false, urgent = false, hint }) {
   return (
     <div
       className={`flex min-w-0 flex-col gap-1 sm:flex-1 ${
@@ -166,13 +202,21 @@ function ReadField({ label, value, multiline = false }) {
       }`}
     >
       <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
-      {/* Wrap on mobile so long emails/addresses stay readable; truncate on sm+ as before */}
       <span
-        className={`text-sm text-gray-800 ${
+        className={`text-sm ${urgent ? "font-medium text-red-700" : "text-gray-800"} ${
           multiline ? "whitespace-pre-wrap break-words" : "break-words sm:truncate"
         }`}
       >
         {value || "—"}
+        {hint && (
+          <span
+            className={`ml-1.5 whitespace-nowrap text-[11px] font-normal ${
+              urgent ? "text-red-600" : "text-gray-400"
+            }`}
+          >
+            ({hint})
+          </span>
+        )}
       </span>
     </div>
   );
@@ -185,4 +229,37 @@ function formatDate(value) {
     month: "short",
     day: "numeric",
   });
+}
+
+// Whole calendar days from today until the date (negative = already expired).
+// Plain "YYYY-MM-DD" strings are read as local dates so the count isn't off by one.
+function daysUntil(value) {
+  if (!value) return null;
+
+  let target;
+  const match = typeof value === "string" && value.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    target = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  } else {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return null;
+    target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - today) / 86400000);
+}
+
+function expiryInfo(value) {
+  const days = daysUntil(value);
+  if (days == null) return null;
+
+  const plural = (n) => `${n} day${n === 1 ? "" : "s"}`;
+  let label;
+  if (days < 0) label = `Expired ${plural(-days)} ago`;
+  else if (days === 0) label = "Expires today";
+  else label = `${plural(days)} left`;
+
+  return { days, label, urgent: days <= EXPIRY_WARN_DAYS };
 }
