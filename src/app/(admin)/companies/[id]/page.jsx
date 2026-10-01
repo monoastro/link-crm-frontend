@@ -1,3 +1,4 @@
+// src/app/companies/[id]/page.js
 "use client";
 
 import Link from "next/link";
@@ -6,6 +7,8 @@ import { Loader2, Pencil } from "lucide-react";
 import { AdminLayout, Form, useGet } from "@/packages/admin";
 import { VacanciesField } from "@/components/templates/VacanciesField.jsx";
 import { countries } from "@/app/(admin)/_entities/countries";
+
+const CARD = "rounded-sm border border-gray-200 bg-white p-3 sm:p-6";
 
 export default function CompanyDetailsPage() {
   const { id } = useParams();
@@ -25,27 +28,28 @@ export default function CompanyDetailsPage() {
 
   return (
     <AdminLayout title={company.name ?? "Company"}>
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-end">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+        <div className="flex sm:justify-end">
           <Link
             href={`/companies/${id}/edit`}
-            className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto sm:py-2"
           >
             <Pencil size={15} />
             Edit Company
           </Link>
         </div>
 
-        <section className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
+        <section className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
           <h2 className="text-sm font-semibold text-gray-900">Company Details</h2>
-          <div className="flex flex-wrap gap-4">
+          {/* Stacked on mobile, wrapping row from sm */}
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
             <ReadField label="Company name" value={company.name} />
             <ReadField label="Country" value={countryName} />
             <ReadField label="Parent company" value={company.parentCompany?.name} />
           </div>
         </section>
 
-        <section className="rounded-sm border border-gray-200 bg-white p-6">
+        <section className={`min-w-0 ${CARD}`}>
           <h2 className="mb-4 text-sm font-semibold text-gray-900">Vacancies</h2>
           <Form defaults={company} onSubmit={() => {}}>
             <VacanciesField
@@ -63,9 +67,10 @@ export default function CompanyDetailsPage() {
 
 function ReadField({ label, value }) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-1">
+    <div className="flex min-w-0 flex-col gap-1 sm:flex-1">
       <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
-      <span className="truncate text-sm text-gray-800">{value || "—"}</span>
+      {/* Wrap on mobile so long names stay readable; truncate from sm */}
+      <span className="break-words text-sm text-gray-800 sm:truncate">{value || "—"}</span>
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
 import Link from "next/link";
@@ -7,32 +6,27 @@ import DataTable from "./DataTable.jsx";
 import { useFetchEntity } from "../../hooks/useFetchEntity.js";
 import { capitalise } from "../../utils/utils.js";
 import { getEntities } from "../../lib/runtime.config.js";
+import { FilterSelect } from "../atoms/FilterSelect.jsx";
+
 const EntityContext = createContext({});
 export const useEntity = () => useContext(EntityContext);
 
-export function AdminChildrenLayout({
-  name,
-  tablefields,
-  actions,
-  bulkActions,
-}) {
-  // 1. Get the filter config from the entity definition
-  const entities = getEntities()
+const controlClass =
+  "rounded-md border border-gray-300 bg-white py-2 pl-3 pr-8 text-base font-medium text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:py-1.5 sm:text-sm";
+
+export function AdminChildrenLayout({ name, tablefields, actions, bulkActions }) {
+  const entities = getEntities();
   const entityConfig = entities[name];
   const filterConfig = entityConfig?.filters || [];
 
-  // Pagination state
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
 
-  // Search state
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  // Filters state (an object like: { role: "admin" })
   const [activeFilters, setActiveFilters] = useState({});
 
-  // Debounce effect for search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(search);
@@ -41,18 +35,14 @@ export function AdminChildrenLayout({
     return () => clearTimeout(timer);
   }, [search]);
 
-  // Build query params
   const params = new URLSearchParams();
   params.set("page", page);
   params.set("limit", limit);
 
   if (debouncedSearch) {
-    // Note: If you want to search a field other than 'name' dynamically,
-    // you could read entityConfig.titleField here.
     params.set("query", debouncedSearch);
   }
 
-  // Apply active filters to the query params
   Object.entries(activeFilters).forEach(([field, value]) => {
     if (value) {
       params.set(`${field}`, value);
@@ -76,7 +66,7 @@ export function AdminChildrenLayout({
       ...prev,
       [field]: value,
     }));
-    setPage(1); // Reset to page 1 when a filter changes
+    setPage(1);
   };
 
   const clearAllFilters = () => {
@@ -88,29 +78,31 @@ export function AdminChildrenLayout({
 
   return (
     <EntityContext value={value}>
-      <div className="flex flex-col gap-5">
-
-        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-5 py-4 shadow-sm">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{capitalise(name)}</h2>
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+        {/* Header card */}
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm sm:px-5 sm:py-4">
+          <div className="min-w-0">
+            <h2 className="truncate text-lg font-semibold text-gray-900">{capitalise(name)}</h2>
             {typeof entity?.data?.totalDocs === "number" && (
               <p className="text-sm text-gray-500">{entity.data.totalDocs} total</p>
             )}
           </div>
           <Link
             href={`/${name}/new`}
-            className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            className="flex shrink-0 items-center gap-1.5 rounded-md bg-black px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:px-4"
           >
             <Plus size={16} />
-            {entityConfig?.addLabel ?? `New ${capitalise(name)}`}
+            <span className="max-w-[9rem] truncate sm:max-w-none">
+              {entityConfig?.addLabel ?? `New ${capitalise(name)}`}
+            </span>
           </Link>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Left side: Search and Filters */}
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Search */}
-            <div className="relative">
+        {/* Toolbar */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-4">
+          {/* Search + filters: 2-column grid on mobile, inline row on sm+ */}
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center sm:gap-3">
+            <div className="relative col-span-2 sm:col-auto">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
                 <Search size={16} />
               </div>
@@ -119,36 +111,25 @@ export function AdminChildrenLayout({
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={`Search ${name}...`}
-                className="w-full sm:w-64 rounded-md border border-gray-300 bg-white py-1.5 pl-9 pr-3 text-sm text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-base text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900 sm:w-64 sm:py-1.5 sm:text-sm"
               />
             </div>
 
-            {/* Dynamic Filters mapped from entities config */}
             {filterConfig.map((filter) => (
-              <select
+              <FilterSelect
                 key={filter.field}
+                label={filter.label}
+                options={filter.options}
                 value={activeFilters[filter.field] || ""}
-                onChange={(e) => handleFilterChange(filter.field, e.target.value)}
-                className="rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
-              >
-                <option value="">All {filter.label}</option>
-                {filter.options.map((opt) => {
-                  const val = typeof opt === "string" ? opt : opt.value;
-                  const label = typeof opt === "string" ? opt : opt.label;
-                  return (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(v) => handleFilterChange(filter.field, v)}
+                className="w-full sm:w-auto sm:min-w-[10rem]"
+              />
             ))}
 
-            {/* Clear Filters Button */}
             {activeFilterCount > 0 && (
               <button
                 onClick={clearAllFilters}
-                className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-900"
+                className="col-span-2 flex items-center gap-1 py-1 text-sm text-gray-500 hover:text-gray-900 sm:col-auto sm:py-0"
               >
                 <X size={14} />
                 Clear filters
@@ -156,16 +137,17 @@ export function AdminChildrenLayout({
             )}
           </div>
 
-          {/* Right side: Limit Selector */}
-          <div className="flex items-center gap-2 ml-auto">
-            <label htmlFor="limit-select" className="text-sm text-gray-600 whitespace-nowrap">
-              Items per page:
+          {/* Limit selector */}
+          <div className="flex w-full items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:justify-start">
+            <label htmlFor="limit-select" className="whitespace-nowrap text-sm text-gray-600">
+              <span className="sm:hidden">Per page:</span>
+              <span className="hidden sm:inline">Items per page:</span>
             </label>
             <select
               id="limit-select"
               value={limit}
               onChange={handleLimitChange}
-              className="rounded-md border border-gray-300 bg-white py-1.5 pl-3 pr-8 text-sm font-medium text-gray-700 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+              className={controlClass}
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -175,15 +157,18 @@ export function AdminChildrenLayout({
           </div>
         </div>
 
-        <DataTable
-          data={entity.data}
-          fields={tablefields}
-          editHref={entityConfig?.editHref ?? `/${name}/`}
-          rowHref={entityConfig?.rowHref}
-          actions={actions}
-          bulkActions={bulkActions}
-          onPageChange={(nextPage) => setPage(nextPage)}
-        />
+        {/* Table scrolls sideways inside its own box instead of stretching the page */}
+        <div className="min-w-0 overflow-x-auto">
+          <DataTable
+            data={entity.data}
+            fields={tablefields}
+            editHref={entityConfig?.editHref ?? `/${name}/`}
+            rowHref={entityConfig?.rowHref}
+            actions={actions}
+            bulkActions={bulkActions}
+            onPageChange={(nextPage) => setPage(nextPage)}
+          />
+        </div>
       </div>
     </EntityContext>
   );

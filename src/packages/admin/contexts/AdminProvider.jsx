@@ -6,6 +6,7 @@ import { ToastProvider } from "./ToastContext.jsx"
 import { AdminShell } from "../components/templates/AdminShell.jsx";
 import { NotificationsProvider } from "./NotificationsContext.jsx";
 import NotificationToaster from "../components/organisms/NotificationToaster.jsx";
+import { LoadingProvider } from "./LoadingContext.jsx";
 import { getRuntimeConfig } from "../lib/runtime.config.js";
 
 export function AdminProvider({ children }) {
@@ -21,16 +22,18 @@ export function AdminProvider({ children }) {
   return (
     <ToastProvider>
       <ApiProvider baseUrl={config.apiBaseUrl} >
-        <AuthProvider>
-          <NotificationsProvider>
-            <AdminGate>
-              <AdminShell>
-                <NotificationToaster />
-                {children}
-              </AdminShell>
-            </AdminGate>
-          </NotificationsProvider>
-        </AuthProvider>
+        <LoadingProvider colorClass='bg-black text-black' trackFetch >
+          <AuthProvider>
+            <NotificationsProvider>
+              <AdminGate>
+                <AdminShell>
+                  <NotificationToaster />
+                  {children}
+                </AdminShell>
+              </AdminGate>
+            </NotificationsProvider>
+          </AuthProvider>
+        </LoadingProvider>
       </ApiProvider>
     </ToastProvider>
   );

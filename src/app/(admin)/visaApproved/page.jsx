@@ -30,7 +30,7 @@ export default function VisaApprovedListPage() {
   const params = new URLSearchParams();
   params.set("page", page);
   params.set("limit", limit);
-  params.set("visaStatus", "approved");
+  params.set("visaStatus", "Received");
   if (debouncedSearch) params.set("query", debouncedSearch);
   // If your API supports filtering flightStatus directly, uncomment:
   // params.set("flightStatus", tab === "completed" ? "deployed" : "!deployed");

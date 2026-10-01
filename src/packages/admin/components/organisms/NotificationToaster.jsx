@@ -1,16 +1,21 @@
 // components/NotificationToaster.jsx
 "use client";
 
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X, Loader2, Bell, ArrowRight } from "lucide-react";
 import { useNotificationsContext } from "../../contexts/NotificationsContext.jsx";
 
+// Muted tints that sit well on the white/gray admin UI
 const STATUS_STYLES = {
-  approved: { ring: "ring-emerald-500/20", dot: "bg-emerald-500", Icon: Check },
-  rejected: { ring: "ring-rose-500/20", dot: "bg-rose-500", Icon: X },
-  progress: { ring: "ring-amber-500/20", dot: "bg-amber-500", Icon: Loader2, spin: true },
-  default: { ring: "ring-blue-500/20", dot: "bg-blue-500", Icon: Bell },
+  approved: { icon: "bg-emerald-50 text-emerald-600 ring-emerald-100", Icon: Check },
+  rejected: { icon: "bg-rose-50 text-rose-600 ring-rose-100", Icon: X },
+  progress: { icon: "bg-amber-50 text-amber-600 ring-amber-100", Icon: Loader2, spin: true },
+  default: { icon: "bg-gray-100 text-gray-600 ring-gray-200", Icon: Bell },
 };
+
+const SWIPE_DISMISS_PX = 90;
+const MOBILE_VISIBLE = 3; // on small screens only the newest few are shown
 
 // turns "visaStatus" -> "visa", "medicalStatus" -> "medical"
 function humanizeField(field = "") {
@@ -54,6 +59,82 @@ function timeAgo(date) {
   return new Date(date).toLocaleDateString();
 }
 
+// ---------------------------------------------------------------------------
+// Swipe left/right to dismiss. Vertical scrolling still works (touch-action),
+// and a drag never counts as a tap.
+// ---------------------------------------------------------------------------
+function SwipeToDismiss({ onDismiss, onTap, className = "", children }) {
+  const startX = useRef(null);
+  const moved = useRef(false);
+  const [dx, setDx] = useState(0);
+  const [dragging, setDragging] = useState(false);
+
+  const reset = () => {
+    startX.current = null;
+    setDragging(false);
+    setDx(0);
+  };
+
+  const handlePointerDown = (e) => {
+    // let the dismiss "x" button handle its own click
+    if (e.target.closest("button")) return;
+    startX.current = e.clientX;
+    moved.current = false;
+    setDragging(true);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+
+  const handlePointerMove = (e) => {
+    if (startX.current == null) return;
+    const delta = e.clientX - startX.current;
+    if (Math.abs(delta) > 5) moved.current = true;
+    setDx(delta);
+  };
+
+  const handlePointerUp = () => {
+    if (startX.current == null) return;
+    if (Math.abs(dx) > SWIPE_DISMISS_PX) {
+      const dir = dx > 0 ? 1 : -1;
+      startX.current = null;
+      setDragging(false);
+      setDx(dir * window.innerWidth); // fly off-screen, then remove
+      setTimeout(onDismiss, 180);
+    } else {
+      reset();
+    }
+  };
+
+  const handleClick = () => {
+    if (moved.current) {
+      moved.current = false;
+      return;
+    }
+    onTap();
+  };
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={(e) => e.key === "Enter" && onTap()}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={reset}
+      style={{
+        transform: `translateX(${dx}px)`,
+        opacity: 1 - Math.min(Math.abs(dx) / 240, 0.7),
+        transition: dragging ? "none" : "transform 180ms ease-out, opacity 180ms ease-out",
+        touchAction: "pan-y",
+      }}
+      className={className}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default function NotificationToaster() {
   const { toasts, dismissToast } = useNotificationsContext();
   const router = useRouter();
@@ -63,69 +144,72 @@ export default function NotificationToaster() {
   function openToast(id) {
     const notification = toasts.find((toast) => toast.id === id);
     dismissToast(id);
-    router.push(notification?.data?.candidateId ? `/candidates/${notification.data.candidateId}` : "/notifications");
+    router.push(
+      notification?.data?.candidateId
+        ? `/candidates/${notification.data.candidateId}`
+        : "/notifications"
+    );
   }
 
   return (
-    <div className="fixed right-4 top-4 z-[100] flex w-96 flex-col">
+    <div
+      className="fixed inset-x-3 z-[100] flex flex-col gap-2 sm:inset-x-auto sm:right-4 sm:top-4 sm:w-96"
+      style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+    >
       <style jsx global>{`
         @keyframes toast-in {
-          from { opacity: 0; transform: translateX(16px) scale(0.98); }
-          to { opacity: 1; transform: translateX(0) scale(1); }
+          from { opacity: 0; transform: translateY(-8px); }
+          to { opacity: 1; transform: translateY(0); }
         }
         .toast-enter {
-          animation: toast-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          animation: toast-in 0.2s ease-out;
         }
       `}</style>
 
-      <div className="flex flex-col gap-3">
-        {toasts.map((n) => {
-          const { text, bucket } = formatNotification(n);
-          const style = STATUS_STYLES[bucket];
-          const { Icon } = style;
+      {toasts.map((n, i) => {
+        const { text, bucket } = formatNotification(n);
+        const style = STATUS_STYLES[bucket];
+        const { Icon } = style;
 
-          return (
-            <div
-              key={n.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => openToast(n.id)}
-              onKeyDown={(e) => e.key === "Enter" && openToast(n.id)}
-              className={`toast-enter group relative flex cursor-pointer gap-3 overflow-hidden rounded-2xl border border-gray-100 bg-white/90 p-4 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] ring-1 backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_30px_-6px_rgba(0,0,0,0.15)] ${style.ring}`}
+        return (
+          // outer wrapper owns the enter animation, inner one owns the swipe
+          <div key={n.id} className={`toast-enter ${i >= MOBILE_VISIBLE ? "hidden sm:block" : ""}`}>
+            <SwipeToDismiss
+              onDismiss={() => dismissToast(n.id)}
+              onTap={() => openToast(n.id)}
+              className="group flex cursor-pointer select-none items-start gap-3 rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900/20"
             >
-              <div className={`absolute left-0 top-0 h-full w-1 ${style.dot}`} />
-
-              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white ${style.dot}`}>
-                <Icon size={16} strokeWidth={2.5} className={style.spin ? "animate-spin" : ""} />
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ring-1 ${style.icon}`}
+              >
+                <Icon size={15} strokeWidth={2.5} className={style.spin ? "animate-spin" : ""} />
               </div>
 
               <div className="min-w-0 flex-1">
-                <div className="flex items-start justify-between gap-2">
-                  <p className="text-sm font-medium capitalize leading-snug text-gray-900">
-                    {text}
-                  </p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      dismissToast(n.id);
-                    }}
-                    className="shrink-0 rounded-full p-1 text-gray-300 opacity-0 transition group-hover:opacity-100 hover:bg-gray-100 hover:text-gray-500"
-                    aria-label="Dismiss"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <p className="mt-1 text-xs text-gray-400">{timeAgo(n.createdAt)}</p>
+                <p className="break-words text-sm font-medium leading-snug text-gray-900">{text}</p>
+                <p className="mt-0.5 text-xs text-gray-400">{timeAgo(n.createdAt)}</p>
               </div>
-            </div>
-          );
-        })}
-      </div>
 
-      {/* attached footer, sticks right under the last toast */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  dismissToast(n.id);
+                }}
+                className="-mr-1 -mt-1 shrink-0 rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 sm:opacity-0 sm:group-hover:opacity-100 sm:focus:opacity-100"
+                aria-label="Dismiss"
+              >
+                <X size={16} />
+              </button>
+            </SwipeToDismiss>
+          </div>
+        );
+      })}
+
       <button
+        type="button"
         onClick={() => router.push("/notifications")}
-        className="-mt-px flex items-center justify-center gap-1.5 rounded-b-2xl border border-t-0 border-gray-100 bg-gray-50/95 py-2.5 text-xs font-medium text-gray-600 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] backdrop-blur-sm transition hover:bg-gray-100 hover:text-gray-900"
+        className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 text-xs font-medium text-gray-600 shadow-sm transition-colors hover:bg-gray-50 hover:text-gray-900"
       >
         See all notifications
         <ArrowRight size={12} />
