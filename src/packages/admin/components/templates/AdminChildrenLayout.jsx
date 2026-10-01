@@ -6,6 +6,7 @@ import DataTable from "./DataTable.jsx";
 import { useFetchEntity } from "../../hooks/useFetchEntity.js";
 import { capitalise } from "../../utils/utils.js";
 import { getEntities } from "../../lib/runtime.config.js";
+import { FilterSelect } from "../atoms/FilterSelect.jsx";
 
 const EntityContext = createContext({});
 export const useEntity = () => useContext(EntityContext);
@@ -115,23 +116,14 @@ export function AdminChildrenLayout({ name, tablefields, actions }) {
             </div>
 
             {filterConfig.map((filter) => (
-              <select
+              <FilterSelect
                 key={filter.field}
+                label={filter.label}
+                options={filter.options}
                 value={activeFilters[filter.field] || ""}
-                onChange={(e) => handleFilterChange(filter.field, e.target.value)}
-                className={`${controlClass} w-full min-w-0 sm:w-auto`}
-              >
-                <option value="">All {filter.label}</option>
-                {filter.options.map((opt) => {
-                  const val = typeof opt === "string" ? opt : opt.value;
-                  const label = typeof opt === "string" ? opt : opt.label;
-                  return (
-                    <option key={val} value={val}>
-                      {label}
-                    </option>
-                  );
-                })}
-              </select>
+                onChange={(v) => handleFilterChange(filter.field, v)}
+                className="w-full sm:w-auto sm:min-w-[10rem]"
+              />
             ))}
 
             {activeFilterCount > 0 && (

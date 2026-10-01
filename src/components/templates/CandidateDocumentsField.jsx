@@ -1,3 +1,4 @@
+// components/templates/CandidateDocumentsField.jsx
 "use client";
 
 import { useContext, useEffect, useState } from "react";
@@ -17,6 +18,9 @@ function inferFileTypeFromUrl(url = "") {
 let uid = 0;
 const nextId = () => `doc-${Date.now()}-${uid++}`;
 
+// 2 tiles per row on mobile, fixed width from sm
+const TILE = "w-[calc(50%-0.5rem)] sm:w-40";
+
 export function CandidateDocumentsField({ name = "documents", caption, readOnly = false }) {
   const defaults = useContext(DefaultsContext);
 
@@ -35,6 +39,14 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Close the preview with Escape
+  useEffect(() => {
+    if (!preview) return;
+    const onKey = (e) => e.key === "Escape" && setPreview(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [preview]);
 
   function handleSlotChange(id, e) {
     const file = e.target.files?.[0];
@@ -76,15 +88,15 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex min-w-0 flex-col gap-3">
       {caption && <span className="text-sm font-medium text-gray-700">{caption}</span>}
       {readOnly && existingDocs.length === 0 && slots.length === 0 && (
         <span className="text-sm text-gray-500">No documents uploaded.</span>
       )}
 
-      <div className="flex flex-wrap gap-4">
+      <div className="flex flex-wrap gap-3 sm:gap-4">
         {existingDocs.map((doc) => (
-          <div key={doc.id} className="flex w-40 flex-col gap-2">
+          <div key={doc.id} className={`flex flex-col gap-2 ${TILE}`}>
             <input type="hidden" name={`other_existing_${doc.id}`} value={doc.url} />
             <div className="group relative aspect-square w-full overflow-hidden rounded-sm border border-gray-200 bg-gray-50">
               <button
@@ -101,11 +113,13 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
                   <img src={resolveUrl({ url: doc.url })} alt="Document" className="h-full w-full object-cover" />
                 )}
               </button>
+              {/* The visible "Remove" link below covers touch; this overlay is hover-only on desktop */}
               {!readOnly && (
                 <button
                   type="button"
                   onClick={() => removeExisting(doc.id)}
-                  className="absolute right-1.5 top-1.5 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-1.5 top-1.5 hidden rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100 sm:block"
+                  aria-label="Remove document"
                 >
                   <X size={12} />
                 </button>
@@ -115,7 +129,7 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
               <button
                 type="button"
                 onClick={() => removeExisting(doc.id)}
-                className="flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-red-500"
+                className="flex items-center justify-center gap-1 py-1 text-xs text-gray-400 hover:text-red-500"
               >
                 <Trash2 size={12} /> Remove
               </button>
@@ -124,10 +138,7 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
         ))}
 
         {slots.map((slot) => (
-          <div
-            key={slot.id}
-            className="flex w-40 flex-col gap-2"
-          >
+          <div key={slot.id} className={`flex flex-col gap-2 ${TILE}`}>
             <label
               htmlFor={`slot-${slot.id}`}
               onClick={(e) => handleTileClick(e, slot)}
@@ -164,7 +175,7 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
               <button
                 type="button"
                 onClick={() => removeSlot(slot.id)}
-                className="flex items-center justify-center gap-1 text-xs text-gray-400 hover:text-red-500"
+                className="flex items-center justify-center gap-1 py-1 text-xs text-gray-400 hover:text-red-500"
               >
                 <Trash2 size={12} /> Remove
               </button>
@@ -174,15 +185,35 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
       </div>
 
       {preview && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6" onClick={() => setPreview(null)}>
-          <button type="button" onClick={() => setPreview(null)} className="absolute right-6 top-6 text-white hover:text-gray-300">
-            <X size={28} />
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-2 sm:p-6"
+          onClick={() => setPreview(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            aria-label="Close preview"
+            className="absolute right-3 z-10 rounded-full bg-black/50 p-2 text-white hover:text-gray-300 sm:right-6 sm:top-6 sm:bg-transparent"
+            style={{ top: "max(0.75rem, env(safe-area-inset-top))" }}
+          >
+            <X size={24} />
           </button>
-          <div className="flex max-h-full max-w-4xl items-center justify-center" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex max-h-full w-full max-w-4xl items-center justify-center"
+            onClick={(e) => e.stopPropagation()}
+          >
             {preview.fileType === "pdf" ? (
-              <iframe src={preview.src} title="Document preview" className="h-[80vh] w-[80vw] rounded-sm bg-white" />
+              <iframe
+                src={preview.src}
+                title="Document preview"
+                className="h-[85dvh] w-full rounded-sm bg-white sm:h-[80vh] sm:w-[80vw]"
+              />
             ) : (
-              <img src={preview.src} alt="Document preview" className="max-h-[85vh] max-w-full rounded-sm object-contain shadow-lg" />
+              <img
+                src={preview.src}
+                alt="Document preview"
+                className="max-h-[85dvh] max-w-full rounded-sm object-contain shadow-lg"
+              />
             )}
           </div>
         </div>
