@@ -47,12 +47,13 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex min-w-0 flex-col gap-4">
       {/* hidden field so this participates in the surrounding <Form> the
           same way other fields do, if Form reads inputs by name */}
       <input type="hidden" name={name} value={JSON.stringify(vacancies)} readOnly />
 
-      <div className="flex items-center justify-between">
+      {/* Tabs + add button: wrap on narrow screens */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex gap-1 rounded-sm bg-gray-100 p-1">
           {[
             { key: "open", label: `Open (${openVacancies.length})` },
@@ -62,7 +63,7 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`rounded-sm px-3 cursor-pointer py-1.5 text-sm font-medium transition-colors ${
+              className={`cursor-pointer rounded-sm px-3 py-1.5 text-sm font-medium transition-colors ${
                 tab === t.key
                   ? "bg-black text-white shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
@@ -77,7 +78,7 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
           <button
             type="button"
             onClick={() => setDraft(emptyDraft())}
-            className="flex cursor-pointer items-center gap-1.5 rounded-sm border border-gray-900 px-3 py-1.5 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white"
+            className="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-sm border border-gray-900 px-3 py-2 text-sm font-medium text-gray-900 hover:bg-gray-900 hover:text-white sm:w-auto sm:py-1.5"
           >
             <Plus size={14} />
             Add vacancy
@@ -85,9 +86,10 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
         )}
       </div>
 
+      {/* Draft form: stacked on mobile, one row from sm */}
       {draft && (
-        <div className="flex items-end gap-3 rounded-sm border border-gray-300 bg-gray-50 p-3">
-          <div className="flex-1">
+        <div className="flex flex-col gap-3 rounded-sm border border-gray-300 bg-gray-50 p-3 sm:flex-row sm:items-end">
+          <div className="w-full min-w-0 sm:flex-1">
             <Input
               label="Position"
               value={draft.position}
@@ -96,7 +98,7 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
               autoFocus
             />
           </div>
-          <div className="w-28">
+          <div className="w-full sm:w-28">
             <Input
               label="Openings"
               type="number"
@@ -105,20 +107,22 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
               onChange={(e) => setDraft({ ...draft, openings: Number(e.target.value) })}
             />
           </div>
-          <button
-            type="button"
-            onClick={addDraft}
-            className="rounded-sm bg-black px-3 py-2 text-sm font-medium text-white hover:bg-gray-800"
-          >
-            Add
-          </button>
-          <button
-            type="button"
-            onClick={() => setDraft(null)}
-            className="rounded-sm px-3 py-2 text-sm text-gray-500 hover:bg-gray-100"
-          >
-            Cancel
-          </button>
+          <div className="grid grid-cols-2 gap-2 sm:flex">
+            <button
+              type="button"
+              onClick={addDraft}
+              className="rounded-sm bg-black px-3 py-2.5 text-sm font-medium text-white hover:bg-gray-800 sm:py-2"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setDraft(null)}
+              className="rounded-sm border border-gray-200 px-3 py-2.5 text-sm text-gray-500 hover:bg-gray-100 sm:border-0 sm:py-2"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       )}
 
@@ -131,8 +135,12 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
       {visible.length > 0 && (
         <div className="flex flex-col divide-y divide-gray-100 rounded-sm border border-gray-200">
           {visible.map((v, i) => (
-            <div key={v.code ?? `new-${i}`} className="flex items-start gap-3 px-4 py-3">
-              <div className="flex-1">
+            <div
+              key={v.code ?? `new-${i}`}
+              className="flex flex-col gap-3 px-3 py-3 sm:flex-row sm:items-start sm:px-4"
+            >
+              {/* Position: full width on mobile */}
+              <div className="w-full min-w-0 sm:flex-1">
                 <Input
                   label="Position"
                   placeholder="Position"
@@ -145,43 +153,48 @@ export function VacanciesField({ name = "vacancies", value, onChange, readOnly }
                 )}
               </div>
 
-              <div className="w-24">
-                <Input
-                  label="Openings"
-                  placeholder="Openings"
-                  type="number"
-                  min={0}
-                  value={v.openings}
-                  onChange={(e) => updateAt(i, { openings: Number(e.target.value) })}
-                  readOnly={readOnly}
-                />
-              </div>
+              {/* Openings + Status share a row on mobile; on sm+ `contents`
+                  makes them direct flex children again with fixed widths */}
+              <div className="grid grid-cols-2 gap-3 sm:contents">
+                <div className="min-w-0 sm:w-24">
+                  <Input
+                    label="Openings"
+                    placeholder="Openings"
+                    type="number"
+                    min={0}
+                    value={v.openings}
+                    onChange={(e) => updateAt(i, { openings: Number(e.target.value) })}
+                    readOnly={readOnly}
+                  />
+                </div>
 
-              <div className="w-32">
-                <Select
-                  label="Status"
-                  placeholder="Status"
-                  value={v.status}
-                  onChange={(e) => updateAt(i, { status: e.target.value })}
-                  disabled={readOnly}
-                  readOnly={readOnly}
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </Select>
+                <div className="min-w-0 sm:w-32">
+                  <Select
+                    label="Status"
+                    placeholder="Status"
+                    value={v.status}
+                    onChange={(e) => updateAt(i, { status: e.target.value })}
+                    disabled={readOnly}
+                    readOnly={readOnly}
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
               </div>
 
               {!readOnly && (
                 <button
                   type="button"
                   onClick={() => removeAt(i)}
-                  className="self-center p-1.5 text-gray-400 hover:text-black"
+                  className="flex items-center justify-center gap-1.5 self-end rounded-sm p-1.5 text-sm text-gray-400 hover:text-black sm:self-center"
                   title="Remove vacancy"
                 >
                   <Trash2 size={16} />
+                  <span className="sm:hidden">Remove</span>
                 </button>
               )}
             </div>

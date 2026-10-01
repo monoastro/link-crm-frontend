@@ -78,6 +78,9 @@ export function CandidateDocumentsField({ name = "documents", caption, readOnly 
   return (
     <div className="flex flex-col gap-3">
       {caption && <span className="text-sm font-medium text-gray-700">{caption}</span>}
+      {readOnly && existingDocs.length === 0 && slots.length === 0 && (
+        <span className="text-sm text-gray-500">No documents uploaded.</span>
+      )}
 
       <div className="flex flex-wrap gap-4">
         {existingDocs.map((doc) => (

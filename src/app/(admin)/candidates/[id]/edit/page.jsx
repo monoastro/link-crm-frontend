@@ -21,6 +21,15 @@ import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
 import { countries } from "@/app/(admin)/_entities/countries";
 
 // ---------------------------------------------------------------------------
+// Layout helpers
+// ---------------------------------------------------------------------------
+
+// Fields stack on mobile, sit side by side from sm
+const ROW = "flex flex-col gap-4 sm:flex-row";
+// Section card: tighter padding on mobile
+const CARD = "flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-3 sm:p-6";
+
+// ---------------------------------------------------------------------------
 // Role config
 // ---------------------------------------------------------------------------
 
@@ -74,7 +83,7 @@ function SelectedStatusField({ defaultValue, readOnly }) {
   const [selectedValue, setSelectedValue] = useState(Boolean(defaultValue));
 
   return (
-    <fieldset className="flex min-w-[260px] flex-1 flex-col gap-1.5">
+    <fieldset className="flex min-w-0 flex-1 flex-col gap-1.5 sm:min-w-[260px]">
       <legend className="text-sm font-medium text-gray-700">Selected</legend>
       <input type="hidden" name="isSelected" value={String(selectedValue)} />
       <div className="flex gap-3 pt-1">
@@ -84,7 +93,7 @@ function SelectedStatusField({ defaultValue, readOnly }) {
         ].map(({ label, value }) => (
           <label
             key={label}
-            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2 text-sm capitalize transition-colors ${
+            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2.5 text-sm capitalize transition-colors sm:py-2 ${
               selectedValue === value
                 ? "border-black bg-gray-100 text-black"
                 : "border-gray-200 text-gray-700"
@@ -111,15 +120,15 @@ function PassportStatusField({ defaultValue, readOnly }) {
   const [selectedValue, setSelectedValue] = useState(String(defaultValue ?? "").toLowerCase());
 
   return (
-    <fieldset className="flex min-w-[260px] flex-1 flex-col gap-1.5">
+    <fieldset className="flex min-w-0 flex-1 flex-col gap-1.5 sm:min-w-[260px]">
       <legend className="text-sm font-medium text-gray-700">Physical passport</legend>
       <div className="flex gap-3 pt-1">
         {["present", "not present"].map((value) => (
           <label
             key={value}
-            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2 text-sm capitalize transition-colors ${
+            className={`flex flex-1 items-center gap-2 whitespace-nowrap rounded-sm border px-3 py-2.5 text-sm capitalize transition-colors sm:py-2 ${
               selectedValue === value
-                ? "border-blue-500 bg-blue-50 text-blue-800"
+                ? "border-black bg-gray-100 text-black"
                 : "border-gray-200 text-gray-700"
             } ${readOnly ? "cursor-not-allowed opacity-60" : "cursor-pointer hover:bg-gray-50"}`}
           >
@@ -130,7 +139,7 @@ function PassportStatusField({ defaultValue, readOnly }) {
               checked={selectedValue === value}
               onChange={() => setSelectedValue(value)}
               disabled={readOnly}
-              className="h-4 w-4 accent-blue-600"
+              className="h-4 w-4 accent-black"
             />
             {value}
           </label>
@@ -259,10 +268,10 @@ export default function CandidateEditPage({ idOverride } = {}) {
         defaults={data?.item ?? {}}
         id="candidate-form"
         onSubmit={handleSubmit}
-        className="flex flex-col gap-6"
+        className="flex min-w-0 flex-col gap-4 sm:gap-6"
       >
-        {/* Identity */}
-        <div className="flex gap-6 rounded-sm border border-gray-200 bg-white p-6">
+        {/* Identity: photo on top (centered) on mobile, beside the fields from sm */}
+        <div className="flex flex-col items-center gap-4 rounded-sm border border-gray-200 bg-white p-3 sm:flex-row sm:items-start sm:gap-6 sm:p-6">
           <PhotoUpload
             existingUrl={resolveUrl({ url: existingPhotoUrl })}
             file={photoFile}
@@ -270,8 +279,8 @@ export default function CandidateEditPage({ idOverride } = {}) {
             readOnly={identityReadOnly}
           />
 
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
-            <div className="flex gap-4">
+          <div className="flex w-full min-w-0 flex-1 flex-col gap-4">
+            <div className={ROW}>
               <Input name="name" placeholder="Full name" required readOnly={identityReadOnly} />
               <Input name="passportNumber" placeholder="Passport number" required readOnly={identityReadOnly} />
               <PassportStatusField
@@ -279,11 +288,11 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 readOnly={identityReadOnly}
               />
             </div>
-            <div className="flex gap-4">
+            <div className={ROW}>
               <Input name="email" type="email" placeholder="Email" readOnly={identityReadOnly} />
               <Input name="phone" placeholder="Phone" readOnly={identityReadOnly} />
             </div>
-            <div className="flex gap-4">
+            <div className={ROW}>
               <SearchableSelect
                 name="gender"
                 label="Gender"
@@ -299,8 +308,8 @@ export default function CandidateEditPage({ idOverride } = {}) {
 
         {/* Application details */}
         {canView("application") && (
-          <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-            <div className="flex gap-4">
+          <div className={CARD}>
+            <div className={ROW}>
               <SearchableSelect
                 name="appliedCountry"
                 label="Applied country"
@@ -330,7 +339,7 @@ export default function CandidateEditPage({ idOverride } = {}) {
               />
             </div>
 
-            <div className="flex gap-4">
+            <div className={ROW}>
               {/* Applied category is enabled only once a company is chosen —
                   its options come from that company's open vacancies,
                   fetched as soon as companyId changes. */}
@@ -363,8 +372,8 @@ export default function CandidateEditPage({ idOverride } = {}) {
 
         {/* Visa */}
         {canView("visa") && (
-          <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-            <div className="flex gap-4">
+          <div className={CARD}>
+            <div className={ROW}>
               <Input name="visaNumber" placeholder="Visa number" readOnly={ro("visa")} />
               <SearchableSelect
                 name="visaStatus"
@@ -379,11 +388,11 @@ export default function CandidateEditPage({ idOverride } = {}) {
                 disabled={ro("visa")}
               />
             </div>
-            <div className="flex gap-4">
+            <div className={ROW}>
               <Input name="visaReceivedDate" type="date" placeholder="Visa received date" readOnly={ro("visa")} />
               <Input name="visaExpiryDate" type="date" placeholder="Visa expiry date" readOnly={ro("visa")} />
             </div>
-            <div className="flex gap-4">
+            <div className={ROW}>
               {isQatar && (
                 <SearchableSelect
                   name="qvcStatus"
@@ -405,8 +414,8 @@ export default function CandidateEditPage({ idOverride } = {}) {
 
         {/* Flight */}
         {canView("flight") && (
-          <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-            <div className="flex gap-4">
+          <div className={CARD}>
+            <div className={ROW}>
               <Input name="deploymentOn" type="date" placeholder="Deployment date" readOnly={ro("flight")} />
               <SearchableSelect
                 name="flightStatus"
@@ -420,8 +429,8 @@ export default function CandidateEditPage({ idOverride } = {}) {
 
         {/* Medical */}
         {canView("medical") && (
-          <div className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
-            <div className="flex gap-4">
+          <div className={CARD}>
+            <div className={ROW}>
               <SearchableSelect
                 name="medicalStatus"
                 label="Medical status"
@@ -440,7 +449,7 @@ export default function CandidateEditPage({ idOverride } = {}) {
 
         {/* Documents */}
         {canView("documents") && (
-          <div className="rounded-sm border border-gray-200 bg-white p-6">
+          <div className="min-w-0 rounded-sm border border-gray-200 bg-white p-3 sm:p-6">
             <CandidateDocumentsField
               name="documents"
               caption="Documents"

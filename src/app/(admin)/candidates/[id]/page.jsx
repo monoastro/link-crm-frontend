@@ -1,3 +1,4 @@
+// src/app/candidates/[id]/page.js
 "use client";
 
 import Link from "next/link";
@@ -11,6 +12,8 @@ import {
 } from "@/packages/admin";
 import { PhotoUpload } from "@/components/templates/PhotoUpload.jsx";
 import { CandidateDocumentsField } from "@/components/templates/CandidateDocumentsField.jsx";
+
+const CARD = "rounded-sm border border-gray-200 bg-white p-3 sm:p-6";
 
 export default function CandidateDetailsPage() {
   const { id } = useParams();
@@ -29,25 +32,26 @@ export default function CandidateDetailsPage() {
 
   return (
     <AdminLayout title={candidate.name ?? "Candidate"}>
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-end">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-6">
+        <div className="flex sm:justify-end">
           <Link
             href={`/candidates/${id}/edit`}
-            className="flex items-center gap-1.5 rounded-md bg-black px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-800"
+            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-black px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800 sm:w-auto sm:py-2"
           >
             <Pencil size={15} />
             Edit Candidate
           </Link>
         </div>
 
-        <section className="flex gap-6 rounded-sm border border-gray-200 bg-white p-6">
+        {/* Identity: photo on top (centered) on mobile, beside the fields from sm */}
+        <section className={`flex flex-col items-center gap-4 sm:flex-row sm:items-start sm:gap-6 ${CARD}`}>
           <PhotoUpload
             existingUrl={resolveUrl({ url: photoUrl })}
             file={null}
             onChange={() => {}}
             readOnly
           />
-          <div className="flex min-w-0 flex-1 flex-col gap-4">
+          <div className="flex w-full min-w-0 flex-1 flex-col gap-4">
             <ReadRow>
               <ReadField label="Full name" value={candidate.name} />
               <ReadField label="Passport number" value={candidate.passportNumber} />
@@ -126,7 +130,7 @@ export default function CandidateDetailsPage() {
           </ReadRow>
         </ReadSection>
 
-        <section className="rounded-sm border border-gray-200 bg-white p-6">
+        <section className={`min-w-0 ${CARD}`}>
           <Form defaults={candidate} onSubmit={() => {}}>
             <CandidateDocumentsField name="documents" caption="Documents" readOnly />
           </Form>
@@ -138,22 +142,36 @@ export default function CandidateDetailsPage() {
 
 function ReadSection({ title, children }) {
   return (
-    <section className="flex flex-col gap-4 rounded-sm border border-gray-200 bg-white p-6">
+    <section className={`flex min-w-0 flex-col gap-4 ${CARD}`}>
       <h2 className="text-sm font-semibold text-gray-900">{title}</h2>
       {children}
     </section>
   );
 }
 
+// 2 columns on mobile, wrapping flex row from sm (same as before)
 function ReadRow({ children }) {
-  return <div className="flex flex-wrap gap-4">{children}</div>;
+  return (
+    <div className="grid grid-cols-2 gap-x-3 gap-y-4 sm:flex sm:flex-wrap sm:gap-4">
+      {children}
+    </div>
+  );
 }
 
 function ReadField({ label, value, multiline = false }) {
   return (
-    <div className={`flex min-w-0 flex-1 flex-col gap-1 ${multiline ? "basis-full" : ""}`}>
+    <div
+      className={`flex min-w-0 flex-col gap-1 sm:flex-1 ${
+        multiline ? "col-span-2 sm:basis-full" : ""
+      }`}
+    >
       <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{label}</span>
-      <span className={`text-sm text-gray-800 ${multiline ? "whitespace-pre-wrap break-words" : "truncate"}`}>
+      {/* Wrap on mobile so long emails/addresses stay readable; truncate on sm+ as before */}
+      <span
+        className={`text-sm text-gray-800 ${
+          multiline ? "whitespace-pre-wrap break-words" : "break-words sm:truncate"
+        }`}
+      >
         {value || "—"}
       </span>
     </div>
